@@ -2,6 +2,7 @@ import { useSelector } from "react-redux";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import { selectCurrentUser } from "./features/auth/authSlice";
+import AssignmentUpload from "./pages/AssignmentUpload";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
@@ -64,6 +65,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/upload/:assignmentId"
+          element={
+            <ProtectedRoute>
+              <AssignmentUpload />
             </ProtectedRoute>
           }
         />
