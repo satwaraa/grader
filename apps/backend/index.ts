@@ -1,10 +1,14 @@
 import http from "http";
-import app from "./src/app";
+import app from "./api/app";
+import router from "./api/router";
 import { initializeSocketIO } from "./src/ws";
 
 const ServerConfig = {
-    httpPort: process.env.HTTP_PORT,
+    httpPort: process.env.HTTP_PORT || 8600,
 };
+
+// Mount API routes
+app.use("/api", router);
 
 const httpServer = http.createServer(app);
 

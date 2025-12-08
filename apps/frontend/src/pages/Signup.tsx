@@ -8,7 +8,8 @@ import { setCredentials } from "../features/auth/authSlice";
 const Signup: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState(""); // Just visual for now since reqres doesn't take it
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<"STUDENT" | "TEACHER" | "ADMIN">("TEACHER");
   const [signup, { isLoading }] = useSignupMutation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -16,16 +17,17 @@ const Signup: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userData = await signup({ email, password }).unwrap();
+      const response = await signup({ email, password, name, role }).unwrap();
       dispatch(
         setCredentials({
-          user: { name: name || "New Teacher", email },
-          token: userData.token,
+          user: response.data.user,
+          token: response.data.accessToken,
         })
       );
       navigate("/dashboard");
-    } catch (err) {
-      alert('Signup failed! Use "eve.holt@reqres.in" for the mock API.');
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      alert(err?.data?.message || "Signup failed! Please try again.");
     }
   };
 
@@ -137,7 +139,7 @@ const Signup: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="eve.holt@reqres.in"
+                  placeholder="teacher@example.com"
                   className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all shadow-sm"
                   required
                 />
@@ -161,6 +163,23 @@ const Signup: React.FC = () => {
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium uppercase text-gray-500 mb-1.5 ml-1">
+                Role
+              </label>
+              <select
+                value={role}
+                onChange={(e) =>
+                  setRole(e.target.value as "STUDENT" | "TEACHER" | "ADMIN")
+                }
+                className="block w-full px-3 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all shadow-sm"
+              >
+                <option value="STUDENT">Student</option>
+                <option value="TEACHER">Teacher</option>
+                <option value="ADMIN">Admin</option>
+              </select>
             </div>
 
             <button

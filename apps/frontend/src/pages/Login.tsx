@@ -15,16 +15,19 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userData = await login({ email, password }).unwrap();
+      const response = await login({ email, password }).unwrap();
       dispatch(
         setCredentials({
-          user: { name: "Demo Teacher", email: email },
-          token: userData.token,
+          user: response.data.user,
+          token: response.data.accessToken,
         })
       );
       navigate("/dashboard");
-    } catch (err) {
-      alert('Login failed! Tip: use "eve.holt@reqres.in" for the mock API.');
+    } catch (err: any) {
+      console.error("Login error:", err);
+      alert(
+        err?.data?.message || "Login failed! Please check your credentials."
+      );
     }
   };
 
@@ -58,7 +61,7 @@ const Login: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="eve.holt@reqres.in"
+                  placeholder="teacher@example.com"
                   className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all shadow-sm hover:border-gray-300 dark:hover:border-gray-700"
                   required
                 />
