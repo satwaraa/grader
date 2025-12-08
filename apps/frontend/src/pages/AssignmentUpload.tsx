@@ -1,11 +1,24 @@
 import { CheckCircle, FileText, Upload } from "lucide-react";
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
+import {
+  useCreateSubmissionMutation,
+  useGetAssignmentQuery,
+} from "../features/assignments/assignmentApi";
 
 const AssignmentUpload: React.FC = () => {
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const { data: assignmentData, isLoading } = useGetAssignmentQuery(
+    assignmentId || "",
+    {
+      skip: !assignmentId,
+    }
+  );
+  const [createSubmission, { isLoading: isSubmitting }] =
+    useCreateSubmissionMutation();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -13,13 +26,45 @@ const AssignmentUpload: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock submission
-    setTimeout(() => {
+    if (!file || !assignmentId) return;
+
+    try {
+      // In a real app, you would upload the file to a storage service (S3, etc.)
+      // and get a URL. Here we'll just use the file name as content for simplicity
+      // or read the file content if it's text.
+      const content = `File: ${file.name} (Size: ${file.size} bytes)`;
+
+      await createSubmission({
+        assignmentId,
+        content,
+      }).unwrap();
+
       setIsSubmitted(true);
-    }, 1000);
+    } catch (error) {
+      console.error("Failed to submit assignment", error);
+      alert("Failed to submit assignment");
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading assignment details...
+      </div>
+    );
+  }
+
+  if (!assignmentData?.data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Assignment not found
+      </div>
+    );
+  }
+
+  const assignment = assignmentData.data;
 
   if (isSubmitted) {
     return (
@@ -45,10 +90,13 @@ const AssignmentUpload: React.FC = () => {
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
           <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Submit Assignment
+              {assignment.title}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Assignment ID: {assignmentId}
+              Due Date:{" "}
+              {assignment.dueDate
+                ? new Date(assignment.dueDate).toLocaleDateString()
+                : "No due date"}
             </p>
           </div>
 
@@ -58,9 +106,7 @@ const AssignmentUpload: React.FC = () => {
                 Instructions
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Please upload your assignment file below. Accepted formats: PDF,
-                DOCX, ZIP. Make sure your file is named correctly (e.g.,
-                StudentName_AssignmentTitle.pdf).
+                {assignment.description || "No instructions provided."}
               </p>
             </div>
 
@@ -107,11 +153,11 @@ const AssignmentUpload: React.FC = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  disabled={!file}
+                  disabled={!file || isSubmitting}
                   className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
                 >
                   <Upload className="h-5 w-5" />
-                  Submit Assignment
+                  {isSubmitting ? "Submitting..." : "Submit Assignment"}
                 </button>
               </div>
             </form>

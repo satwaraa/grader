@@ -9,92 +9,81 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import { useAppSelector } from "../app/store";
+import {
+  useCreateAssignmentMutation,
+  useGetRecentSubmissionsQuery,
+  useGetTeacherAssignmentsQuery,
+} from "../features/assignments/assignmentApi";
 import { selectCurrentUser } from "../features/auth/authSlice";
-
-interface SubmissionItem {
-  id: number;
-  title: string;
-  student: string;
-  status: "Pending" | "Graded" | "Reviewing";
-  score: string;
-  date: string;
-}
-
-interface AssignmentItem {
-  id: number;
-  title: string;
-  dueDate: string;
-  submissionCount: number;
-}
 
 const Dashboard: React.FC = () => {
   const user = useAppSelector(selectCurrentUser);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const isTeacher = user?.role === "TEACHER";
 
-  const recentSubmissions: SubmissionItem[] = [
-    {
-      id: 1,
-      title: "Adv. Algorithms Final",
-      student: "Sarah Connor",
-      status: "Pending",
-      score: "-",
-      date: "Oct 24",
-    },
-    {
-      id: 2,
-      title: "Database Design",
-      student: "John Smith",
-      status: "Graded",
-      score: "94/100",
-      date: "Oct 23",
-    },
-    {
-      id: 3,
-      title: "UI/UX Case Study",
-      student: "Emily Blunt",
-      status: "Graded",
-      score: "88/100",
-      date: "Oct 22",
-    },
-    {
-      id: 4,
-      title: "Network Security",
-      student: "Michael Chang",
-      status: "Reviewing",
-      score: "-",
-      date: "Oct 21",
-    },
-  ];
+  // API Hooks
+  const { data: assignmentsData, isLoading: isAssignmentsLoading } =
+    useGetTeacherAssignmentsQuery(undefined, {
+      skip: !isTeacher,
+    });
+  const { data: submissionsData, isLoading: isSubmissionsLoading } =
+    useGetRecentSubmissionsQuery();
+  const [createAssignment, { isLoading: isCreating }] =
+    useCreateAssignmentMutation();
 
-  const activeAssignments: AssignmentItem[] = [
-    {
-      id: 1,
-      title: "Adv. Algorithms Final",
-      dueDate: "Oct 30, 2023",
-      submissionCount: 12,
-    },
-    {
-      id: 2,
-      title: "Database Design",
-      dueDate: "Nov 05, 2023",
-      submissionCount: 45,
-    },
-  ];
+  // Form State
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [maxScore, setMaxScore] = useState("100");
 
-  const handleCreateAssignment = (e: React.FormEvent) => {
+  const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Logic to create assignment would go here
-    setIsCreateModalOpen(false);
-    alert("Assignment created successfully!");
+    try {
+      await createAssignment({
+        title,
+        description,
+        dueDate,
+        maxScore: parseInt(maxScore),
+      }).unwrap();
+      setIsCreateModalOpen(false);
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      alert("Assignment created successfully!");
+    } catch (error) {
+      console.error("Failed to create assignment", error);
+      alert("Failed to create assignment");
+    }
   };
 
-  const handleShareLink = (assignmentId: number) => {
+  const handleShareLink = (assignmentId: string) => {
     const link = `${window.location.origin}/upload/${assignmentId}`;
     navigator.clipboard.writeText(link);
     alert(`Link copied: ${link}`);
   };
 
-  const isTeacher = user?.role === "TEACHER";
+  const activeAssignments = assignmentsData?.data || [];
+  const recentSubmissions = submissionsData?.data || [];
+
+  // Calculate stats
+  const pendingCount = recentSubmissions.filter(
+    (s) => s.status === "PENDING"
+  ).length;
+  const gradedCount = recentSubmissions.filter(
+    (s) => s.status === "GRADED"
+  ).length;
+  // Calculate average score for graded submissions
+  const gradedSubmissions = recentSubmissions.filter(
+    (s) => s.status === "GRADED" && s.score !== null
+  );
+  const avgScore =
+    gradedSubmissions.length > 0
+      ? Math.round(
+          gradedSubmissions.reduce((acc, s) => acc + (s.score || 0), 0) /
+            gradedSubmissions.length
+        )
+      : 0;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 transition-colors duration-300 relative">
@@ -117,6 +106,8 @@ const Dashboard: React.FC = () => {
                 <input
                   type="text"
                   required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent"
                   placeholder="Assignment Title"
                 />
@@ -126,6 +117,8 @@ const Dashboard: React.FC = () => {
                   Description
                 </label>
                 <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent"
                   rows={3}
                   placeholder="Instructions..."
@@ -138,14 +131,29 @@ const Dashboard: React.FC = () => {
                 <input
                   type="date"
                   required
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Max Score
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={maxScore}
+                  onChange={(e) => setMaxScore(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors"
+                disabled={isCreating}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
               >
-                Create Assignment
+                {isCreating ? "Creating..." : "Create Assignment"}
               </button>
             </form>
           </div>
@@ -196,7 +204,7 @@ const Dashboard: React.FC = () => {
               </h3>
             </div>
             <p className="text-4xl font-bold text-gray-900 dark:text-white mt-2">
-              {isTeacher ? "12" : "3"}
+              {pendingCount}
             </p>
           </div>
           <div className="bg-white dark:bg-gradient-to-br dark:from-emerald-900/40 dark:to-emerald-900/10 border border-gray-200 dark:border-emerald-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
@@ -209,7 +217,7 @@ const Dashboard: React.FC = () => {
               </h3>
             </div>
             <p className="text-4xl font-bold text-gray-900 dark:text-white mt-2">
-              {isTeacher ? "45" : "12"}
+              {gradedCount}
             </p>
           </div>
           <div className="bg-white dark:bg-gradient-to-br dark:from-purple-900/40 dark:to-purple-900/10 border border-gray-200 dark:border-purple-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
@@ -222,7 +230,7 @@ const Dashboard: React.FC = () => {
               </h3>
             </div>
             <p className="text-4xl font-bold text-gray-900 dark:text-white mt-2">
-              {isTeacher ? "78%" : "85%"}
+              {avgScore}%
             </p>
           </div>
         </div>
@@ -254,31 +262,47 @@ const Dashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-transparent">
-                  {activeAssignments.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                        {item.title}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {item.dueDate}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {item.submissionCount}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => handleShareLink(item.id)}
-                          className="flex items-center gap-1 text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                        >
-                          <Share2 className="h-4 w-4" />
-                          Share
-                        </button>
+                  {isAssignmentsLoading ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-4 text-center">
+                        Loading...
                       </td>
                     </tr>
-                  ))}
+                  ) : activeAssignments.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-4 text-center">
+                        No assignments found
+                      </td>
+                    </tr>
+                  ) : (
+                    activeAssignments.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                          {item.title}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {item.dueDate
+                            ? new Date(item.dueDate).toLocaleDateString()
+                            : "No due date"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {item._count?.submissions || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => handleShareLink(item.id)}
+                            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          >
+                            <Share2 className="h-4 w-4" />
+                            Share
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -316,41 +340,63 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-transparent">
-                {recentSubmissions.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                      {item.title}
-                    </td>
-                    {isTeacher && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                        {item.student}
-                      </td>
-                    )}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                            ${
-                              item.status === "Graded"
-                                ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20"
-                                : item.status === "Pending"
-                                ? "bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/20"
-                                : "bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20"
-                            }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {item.score}
+                {isSubmissionsLoading ? (
+                  <tr>
+                    <td
+                      colSpan={isTeacher ? 5 : 4}
+                      className="px-6 py-4 text-center"
+                    >
+                      Loading...
                     </td>
                   </tr>
-                ))}
+                ) : recentSubmissions.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={isTeacher ? 5 : 4}
+                      className="px-6 py-4 text-center"
+                    >
+                      No submissions found
+                    </td>
+                  </tr>
+                ) : (
+                  recentSubmissions.map((item) => (
+                    <tr
+                      key={item.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                        {item.assignment?.title || "Unknown Assignment"}
+                      </td>
+                      {isTeacher && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          {item.student?.name ||
+                            item.student?.email ||
+                            "Unknown Student"}
+                        </td>
+                      )}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(item.submittedAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                              ${
+                                item.status === "GRADED"
+                                  ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20"
+                                  : item.status === "PENDING"
+                                  ? "bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/20"
+                                  : "bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20"
+                              }`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {item.score !== null ? `${item.score}/100` : "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

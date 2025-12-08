@@ -4,7 +4,7 @@ import type { AuthState, User } from "../../types";
 
 // Initialize state from LocalStorage if available
 const userJson = localStorage.getItem("user");
-const token = localStorage.getItem("token");
+const token = localStorage.getItem("accessToken");
 
 const initialState: AuthState = {
   user: userJson ? JSON.parse(userJson) : null,
@@ -17,19 +17,21 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ user: User; accessToken: string; refreshToken: string }>
     ) => {
-      const { user, token } = action.payload;
+      const { user, accessToken, refreshToken } = action.payload;
       state.user = user;
-      state.token = token;
+      state.token = accessToken;
       localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("token", token);
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       localStorage.removeItem("user");
-      localStorage.removeItem("token");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
     },
   },
 });

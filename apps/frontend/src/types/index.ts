@@ -33,3 +33,49 @@ export interface RegisterData {
   name: string;
   role?: "STUDENT" | "TEACHER" | "ADMIN";
 }
+
+export interface Assignment {
+  id: string;
+  title: string;
+  description?: string;
+  maxScore: number;
+  dueDate?: string;
+  teacherId: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    submissions: number;
+  };
+}
+
+export interface Submission {
+  id: string;
+  content: string;
+  score?: number;
+  feedback?: string;
+  status: "PENDING" | "GRADED" | "REVIEWING";
+  submittedAt: string;
+  gradedAt?: string;
+  studentId: string;
+  assignmentId: string;
+  student?: {
+    name: string;
+    email: string;
+  };
+  assignment?: {
+    title: string;
+    dueDate: string;
+  };
+}
+
+export interface CreateAssignmentRequest {
+  title: string;
+  description?: string;
+  maxScore?: number;
+  dueDate?: string;
+}
+
+export interface CreateSubmissionRequest {
+  content: string;
+  assignmentId: string;
+}

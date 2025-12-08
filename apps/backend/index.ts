@@ -22,7 +22,13 @@ httpServer.listen(ServerConfig.httpPort, () => {
 const exitHandler = () => {
     httpServer.close(() => {
         console.info("HTTP server closed");
+        process.exit(0);
     });
+
+    setTimeout(() => {
+        console.warn("Forced exit");
+        process.exit(1);
+    }, 5000);
 };
 
 const unexpectedErrorHandler = (error: any) => {

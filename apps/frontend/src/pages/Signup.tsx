@@ -21,7 +21,8 @@ const Signup: React.FC = () => {
       dispatch(
         setCredentials({
           user: response.data.user,
-          token: response.data.accessToken,
+          accessToken: response.data.accessToken,
+          refreshToken: response.data.refreshToken,
         })
       );
       navigate("/dashboard");

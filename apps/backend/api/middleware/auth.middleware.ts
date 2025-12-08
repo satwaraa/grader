@@ -29,6 +29,12 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
         (req as any).userEmail = decoded.email;
         (req as any).userRole = decoded.role;
 
+        (req as any).user = {
+            id: decoded.userId,
+            email: decoded.email,
+            role: decoded.role,
+        };
+
         next();
     } catch (error) {
         return res.status(401).json({
