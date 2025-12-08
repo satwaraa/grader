@@ -1,35 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useSelector } from "react-redux";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import { selectCurrentUser } from "./features/auth/authSlice";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Onboarding from "./pages/Onboarding";
+import Signup from "./pages/Signup";
+
+// Layout wrapper to include Navbar everywhere
+const Layout = () => {
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans">
+      <Navbar />
+      <Outlet />
+    </div>
+  );
+};
+
+// Protected Route Wrapper
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useSelector(selectCurrentUser);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+// Public Route Wrapper (Redirects to dashboard if already logged in)
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useSelector(selectCurrentUser);
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Routes>
+      <Route element={<Layout />}>
+        {/* Public Routes */}
+        <Route path="/" element={<Onboarding />} />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <PublicRoute>
+              <Signup />
+            </PublicRoute>
+          }
+        />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+    </Routes>
+  );
 }
 
-export default App
+export default App;
