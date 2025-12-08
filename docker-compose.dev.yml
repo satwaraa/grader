@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  # Backend API (Development mode with hot reload)
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.dev
+    container_name: lpu-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - lpu-network
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+      - ./apps/backend/uploads:/app/uploads
+
+  # Frontend App (Development mode with hot reload)
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    container_name: lpu-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+    depends_on:
+      - backend
+    networks:
+      - lpu-network
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+
+networks:
+  lpu-network:
+    driver: bridge

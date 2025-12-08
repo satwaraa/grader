@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env*.local
+.vscode
+.idea
+*.md
+.DS_Store
+.turbo
+apps/*/node_modules
+apps/*/dist
+apps/*/build
