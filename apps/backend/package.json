@@ -12,7 +12,8 @@
         "@types/bun": "latest",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
-        "@types/multer": "^2.0.0"
+        "@types/multer": "^2.0.0",
+        "@types/socket.io": "^3.0.2"
     },
     "peerDependencies": {
         "typescript": "^5"
@@ -24,6 +25,7 @@
         "dotenv": "^17.2.3",
         "express": "^5.2.1",
         "multer": "^2.0.2",
-        "prisma": "6.19"
+        "prisma": "6.19",
+        "socket.io": "^4.8.1"
     }
 }
