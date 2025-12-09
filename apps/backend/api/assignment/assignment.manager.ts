@@ -6,7 +6,7 @@ export class AssignmentManager {
         description?: string;
         maxScore?: number;
         dueDate?: Date;
-        otp: number;
+        otp: string;
         teacherId: string;
     }) {
         return prisma.assignment.create({

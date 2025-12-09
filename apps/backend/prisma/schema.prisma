@@ -41,7 +41,7 @@ model Assignment {
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  otp         Int
+  otp         String
 
   // Relations
   teacherId   String
