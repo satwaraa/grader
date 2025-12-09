@@ -254,6 +254,9 @@ const Dashboard: React.FC = () => {
                       Due Date
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      OTP
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Submissions
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -264,13 +267,13 @@ const Dashboard: React.FC = () => {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-transparent">
                   {isAssignmentsLoading ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-4 text-center">
+                      <td colSpan={5} className="px-6 py-4 text-center">
                         Loading...
                       </td>
                     </tr>
                   ) : activeAssignments.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-4 text-center">
+                      <td colSpan={5} className="px-6 py-4 text-center">
                         No assignments found
                       </td>
                     </tr>
@@ -287,6 +290,9 @@ const Dashboard: React.FC = () => {
                           {item.dueDate
                             ? new Date(item.dueDate).toLocaleDateString()
                             : "No due date"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+                          {item.otp}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {item._count?.submissions || 0}

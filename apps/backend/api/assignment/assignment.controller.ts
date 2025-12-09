@@ -3,6 +3,7 @@ import { Router } from "express";
 import { errorResponse, successResponse } from "../../lib/apiResponse";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { catchAsync } from "../utils/catchAsyncWrapper";
+import generateNumericOTP from "../utils/generateOTP";
 import { AssignmentManager } from "./assignment.manager";
 
 export class AssignmentController {
@@ -45,9 +46,7 @@ export class AssignmentController {
 
     private async createAssignment(req: Request, res: Response) {
         const { title, description, maxScore, dueDate } = req.body;
-        // @ts-ignore - user is attached by auth middleware
         const teacherId = req.user.id;
-        // @ts-ignore
         const role = req.user.role;
 
         if (role !== "TEACHER") {
@@ -61,6 +60,7 @@ export class AssignmentController {
             description,
             maxScore: maxScore ? parseInt(maxScore) : 100,
             dueDate: dueDate ? new Date(dueDate) : undefined,
+            otp: generateNumericOTP(4),
             teacherId,
         });
 
@@ -70,7 +70,6 @@ export class AssignmentController {
     }
 
     private async getTeacherAssignments(req: Request, res: Response) {
-        // @ts-ignore
         const teacherId = req.user.id;
         const assignments = await this.assignmentManager.getAssignmentsByTeacher(
             teacherId,

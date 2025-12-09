@@ -43,6 +43,7 @@ export interface Assignment {
   teacherId: string;
   createdAt: string;
   updatedAt: string;
+  otp: number;
   _count?: {
     submissions: number;
   };

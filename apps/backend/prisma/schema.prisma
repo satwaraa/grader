@@ -18,7 +18,7 @@ enum UserRole {
 }
 
 model User {
-  id        String      @id @default(uuid())
+  id        String   @id @default(uuid())
   email     String   @unique
   password  String
   name      String
@@ -34,34 +34,35 @@ model User {
 }
 
 model Assignment {
-  id          String      @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String
   description String?
-  maxScore    Int      @default(100)
+  maxScore    Int       @default(100)
   dueDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  otp         Int
 
   // Relations
   teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher     User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   submissions Submission[]
 
   @@map("assignments")
 }
 
 model Submission {
-  id           String      @id @default(uuid())
-  content      String
-  score        Int?
-  feedback     String?
-  status       SubmissionStatus @default(PENDING)
-  submittedAt  DateTime @default(now())
-  gradedAt     DateTime?
+  id          String           @id @default(uuid())
+  content     String
+  score       Int?
+  feedback    String?
+  status      SubmissionStatus @default(PENDING)
+  submittedAt DateTime         @default(now())
+  gradedAt    DateTime?
 
   // Relations
   studentId    String
-  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   assignmentId String
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
