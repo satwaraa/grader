@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json bun.lockb* ./
 COPY prisma ./prisma/
 
-# Install dependencies
+# Install dependenciesonfi
 RUN bun install --frozen-lockfile
 
 # Generate Prisma Client

@@ -6,9 +6,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const corsOption = {
-  origin: true,
-  credentials: true,
-  accessControlAllowOrigin: true,
+    origin: true,
+    credentials: true,
+    accessControlAllowOrigin: true,
 };
 
 app.use(cors(corsOption));

@@ -1,14 +1,24 @@
 import { prisma } from "../../lib/prisma";
+import { AppError } from "../../utils/apiResponseHandler";
+import Client from "../../utils/S3client";
 
 export class SubmissionManager {
-    async createSubmission(data: {
-        content: string;
-        studentId: string;
-        assignmentId: string;
-    }) {
-        return prisma.submission.create({
-            data,
-        });
+    async createSubmission(data: { studentId: string; assignmentId: string }) {
+        try {
+            if (process.env.PUBLIC_ENDPOINT) {
+                const assignmentPublicUrl = `${process.env.PUBLIC_ENDPOINT}/${data.assignmentId}/${data.studentId}`;
+
+                return prisma.submission.create({
+                    data: { ...data, public_url: assignmentPublicUrl },
+                });
+            }
+            throw new AppError("cant generate public url", 500);
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new AppError(error.message, 500);
+            }
+            throw new AppError("something went wrong", 500);
+        }
     }
 
     async getSubmissionsByStudent(studentId: string) {
@@ -64,5 +74,25 @@ export class SubmissionManager {
             orderBy: { submittedAt: "desc" },
             take: 10,
         });
+    }
+    async presignedUrl(fileName: string, type: string, assignmentId: string, id: string) {
+        try {
+            const key = `/${assignmentId}/${id}`;
+            const fileRef = Client.file(key);
+
+            const url = fileRef.presign({
+                method: "PUT",
+                // contentType: type,
+                expiresIn: 60,
+            });
+
+            return { url, key };
+        } catch (error) {
+            if (error instanceof Error) {
+                console.log(error.message);
+            }
+
+            throw new Error("Can't create presignedUrl");
+        }
     }
 }

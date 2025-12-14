@@ -71,6 +71,7 @@ export class AssignmentController {
 
     private async getTeacherAssignments(req: Request, res: Response) {
         const teacherId = req.user.id;
+
         const assignments = await this.assignmentManager.getAssignmentsByTeacher(
             teacherId,
         );

@@ -1,25 +1,36 @@
-version: "3.8"
-
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: assignment-grader-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    restart: "always"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   # Backend API
   backend:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
-    container_name: lpu-backend
+    container_name: assignment-grader-backend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8600:8600"
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 8600
       DATABASE_URL: ${DATABASE_URL}
     networks:
       - lpu-network
     volumes:
       - ./apps/backend/uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8600/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -31,11 +42,11 @@ services:
       context: ./apps/frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:3000
-    container_name: lpu-frontend
+        VITE_API_URL: http://localhost:8600/api
+    container_name: assignment-grader-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "5173:5173"
     depends_on:
       - backend
     networks:
@@ -45,7 +56,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
+volumes:
+  redis_data:
 networks:
   lpu-network:
     driver: bridge

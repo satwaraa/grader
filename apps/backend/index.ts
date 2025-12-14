@@ -2,6 +2,8 @@ import http from "http";
 import app from "./api/app";
 import router from "./api/router";
 import { initializeSocketIO } from "./src/ws";
+import redisClient from "./utils/Redis";
+import S3Client from "./utils/S3client";
 
 const ServerConfig = {
     httpPort: process.env.HTTP_PORT || 8600,
@@ -15,9 +17,27 @@ const httpServer = http.createServer(app);
 // Initialize Socket.IO
 initializeSocketIO(httpServer);
 
-httpServer.listen(ServerConfig.httpPort, () => {
-    console.log(`HTTP server listening at port ${ServerConfig.httpPort}`);
-});
+// Check Redis and S3 connections before starting server
+const startServer = async () => {
+    try {
+        // Check Redis connection
+        await redisClient.ping();
+        console.log("✅ Redis connected successfully");
+
+        // Check S3 connection
+        await S3Client.list();
+        console.log("✅ S3 connected successfully");
+
+        httpServer.listen(ServerConfig.httpPort, () => {
+            console.log(`HTTP server listening at port ${ServerConfig.httpPort}`);
+        });
+    } catch (error) {
+        console.error("❌ Failed to initialize services:", error);
+        process.exit(1);
+    }
+};
+
+startServer();
 
 const exitHandler = () => {
     httpServer.close(() => {

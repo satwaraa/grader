@@ -12,7 +12,7 @@ let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: "http://localhost:8600/api",
+  baseUrl: import.meta.env.VITE_API_URL || "http://localhost:8600/api",
   prepareHeaders: (headers, { getState }) => {
     const token =
       (getState() as RootState).auth.token ||
