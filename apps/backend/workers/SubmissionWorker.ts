@@ -1,0 +1,271 @@
+import { Job, Worker } from "bullmq";
+import { spawn } from "child_process";
+import fs from "fs";
+// import { config } from "dotenv";
+import path from "path";
+import { SubmissionManager } from "../api/submission/submission.manager";
+import { redis } from "../utils/redis";
+
+// Load environment variables from parent directory
+// config({ path: path.join(__dirname, "../.env") });
+
+const submissionManager = new SubmissionManager();
+
+enum SubmissionStatus {
+    PENDING = "PENDING",
+    GRADED = "GRADED",
+    REVIEWING = "REVIEWING",
+}
+
+interface SubmissionJobData {
+    id: string;
+    public_url: string;
+    score: number | null;
+    feedback: string | null;
+    status: SubmissionStatus;
+    submittedAt: string;
+    gradedAt: string | null;
+    studentId: string;
+    assignmentId: string;
+}
+
+interface ParsedPage {
+    page_number: number;
+    text: string;
+    images: string[];
+}
+
+interface GeminiEvaluation {
+    score: number;
+    strengths?: string[];
+    weaknesses?: string[];
+    feedback: string;
+    summary: string;
+    raw_response?: string;
+}
+
+function runPython(submissionId: string, filePath: string): Promise<ParsedPage[]> {
+    return new Promise<ParsedPage[]>((resolve, reject) => {
+        const script = path.join(__dirname, "python", "pdfParser.py");
+        let extractedData: ParsedPage[] = [];
+
+        const proc = spawn("python3", [script, filePath, submissionId], {
+            cwd: path.join(__dirname, "python"),
+        });
+
+        proc.stdout.on("data", (data) => {
+            const output = data.toString();
+            console.log(`🐍 Python output: ${output}`);
+
+            try {
+                const msg = JSON.parse(output);
+                console.log(`📤 Publishing event:`, msg);
+
+                // Store extracted data when parsing is completed
+                if (msg.step === "parsing_completed" && msg.result) {
+                    extractedData = msg.result;
+                }
+
+                redis.publish(`submission:${submissionId}`, JSON.stringify(msg));
+            } catch (err) {
+                console.log(`⚠️  Non-JSON output (ignored): ${output}`);
+            }
+        });
+
+        proc.stderr.on("data", (err) => {
+            console.error(`🐍 Python error: ${err.toString()}`);
+        });
+
+        proc.on("close", (code) => {
+            console.log(`🐍 Python process exited with code: ${code}`);
+            if (code === 0) {
+                console.log(`✅ Python process completed successfully`);
+                resolve(extractedData);
+            } else {
+                const error = new Error(`Python process failed with code ${code}`);
+                console.error(`❌ ${error.message}`);
+                reject(error);
+            }
+        });
+    });
+}
+
+function runGeminiGrader(
+    extractedData: ParsedPage[],
+    assignmentId: string,
+    submissionId: string,
+): Promise<GeminiEvaluation> {
+    return new Promise<GeminiEvaluation>((resolve, reject) => {
+        const script = path.join(__dirname, "python", "geminiGrader.py");
+        let evaluation: GeminiEvaluation | null = null;
+
+        // Pass extracted data as JSON string
+        const extractedDataJson = JSON.stringify(extractedData);
+
+        // Get the backend directory to find .env file
+        const backendDir = path.join(__dirname, "..");
+        const envPath = path.join(backendDir, ".env");
+
+        console.log(`📄 Using .env from: ${envPath}`);
+
+        const proc = spawn(
+            "python3",
+            [script, extractedDataJson, assignmentId, submissionId],
+            {
+                env: {
+                    ...process.env,
+                    GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
+                    DOTENV_PATH: envPath,
+                },
+                cwd: path.join(__dirname, "python"),
+            },
+        );
+
+        proc.stdout.on("data", (data) => {
+            const output = data.toString();
+            console.log(`🤖 Gemini output: ${output}`);
+
+            try {
+                const msg = JSON.parse(output);
+                console.log(`📤 Publishing event:`, msg);
+
+                // Store evaluation when Gemini completes
+                if (msg.step === "gemini_completed" && msg.evaluation) {
+                    evaluation = msg.evaluation;
+                }
+
+                redis.publish(`submission:${submissionId}`, JSON.stringify(msg));
+            } catch (err) {
+                console.log(`⚠️  Non-JSON output (ignored): ${output}`);
+            }
+        });
+
+        proc.stderr.on("data", (err) => {
+            console.error(`🤖 Gemini error: ${err.toString()}`);
+        });
+
+        proc.on("close", (code) => {
+            console.log(`🤖 Gemini process exited with code: ${code}`);
+            if (code === 0 && evaluation) {
+                console.log(`✅ Gemini evaluation completed successfully`);
+                resolve(evaluation);
+            } else {
+                const error = new Error(`Gemini process failed with code ${code}`);
+                console.error(`❌ ${error.message}`);
+                reject(error);
+            }
+        });
+    });
+}
+
+const worker = new Worker<SubmissionJobData>(
+    "grade_assignment",
+    async (job: Job<SubmissionJobData>) => {
+        console.log("✅ Job received:", job.id);
+        console.log("Job data:", job.data);
+
+        const { id, public_url, studentId, assignmentId } = job.data;
+        console.log(`📝 Processing submission ${id} for student ${studentId}`);
+
+        await job.updateProgress(5);
+
+        // Create tmp directory in project if it doesn't exist
+        const tmpDir = path.join(__dirname, "..", "tmp");
+        if (!fs.existsSync(tmpDir)) {
+            fs.mkdirSync(tmpDir, { recursive: true });
+        }
+
+        // Download the PDF from public URL
+        console.log(`⬇️  Downloading PDF from: ${public_url}`);
+        const buffer = await fetch(public_url).then((res) => res.arrayBuffer());
+        const pdfPath = path.join(tmpDir, `submission_${id}.pdf`);
+        console.log(`💾 Saving PDF to: ${pdfPath}`);
+        fs.writeFileSync(pdfPath, Buffer.from(buffer));
+        console.log(`✅ PDF saved successfully`);
+
+        await job.updateProgress(10);
+
+        // Step 1: Parse PDF with Python
+        console.log(`🚀 Starting Python PDF parser...`);
+        const extractedData = await runPython(id, pdfPath);
+        console.log(`✅ PDF parsing completed. Extracted ${extractedData.length} pages`);
+
+        await job.updateProgress(80);
+
+        // Step 2: Grade with Gemini
+        console.log(`🤖 Starting Gemini grading...`);
+        const evaluation = await runGeminiGrader(extractedData, assignmentId, id);
+        console.log(`✅ Gemini grading completed. Score: ${evaluation.score}/100`);
+
+        await job.updateProgress(95);
+
+        // Step 3: Update submission in database
+        console.log(`💾 Updating submission in database...`);
+        const fullFeedback = `
+**Summary:** ${evaluation.summary}
+
+**Score:** ${evaluation.score}/100
+
+${
+    evaluation.strengths && evaluation.strengths.length > 0
+        ? `**Strengths:**\n${evaluation.strengths.map((s) => `- ${s}`).join("\n")}\n\n`
+        : ""
+}
+
+${
+    evaluation.weaknesses && evaluation.weaknesses.length > 0
+        ? `**Areas for Improvement:**\n${evaluation.weaknesses
+              .map((w) => `- ${w}`)
+              .join("\n")}\n\n`
+        : ""
+}
+
+**Detailed Feedback:**
+${evaluation.feedback}
+        `.trim();
+
+        await submissionManager.updateSubmissionGrade(id, {
+            score: evaluation.score,
+            feedback: fullFeedback,
+            status: "GRADED",
+        });
+
+        console.log(`✅ Submission updated in database`);
+
+        // Publish final completion event
+        redis.publish(
+            `submission:${id}`,
+            JSON.stringify({
+                step: "grading_completed",
+                percent: 100,
+                score: evaluation.score,
+                status: "GRADED",
+            }),
+        );
+
+        await job.updateProgress(100);
+        console.log(`🎉 Job ${job.id} completed successfully!`);
+
+        return true;
+    },
+    {
+        connection: redis,
+        concurrency: 2,
+    },
+);
+
+console.log("🚀 Worker started and listening for jobs on 'grade_assignment' queue");
+console.log("📡 Redis connection:", redis.options.host, redis.options.port);
+
+// Handle worker events
+worker.on("completed", (job) => {
+    console.log(`✅ Job ${job.id} completed successfully`);
+});
+
+worker.on("failed", (job, err) => {
+    console.log(`❌ Job ${job?.id} failed:`, err.message);
+});
+
+worker.on("error", (err) => {
+    console.error("❌ Worker error:", err);
+});

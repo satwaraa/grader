@@ -79,11 +79,11 @@ const AssignmentUpload: React.FC = () => {
         if (!file || !assignmentId) return;
 
         try {
-            // In a real app, you would upload the file to a storage service (S3, etc.)
-            // and get a URL. Here we'll just use the file name as content for simplicity
-            // or read the file content if it's text.
             const content = `File: ${file.name} (Size: ${file.size} bytes)`;
-
+            console.log({
+                assignmentId,
+                content,
+            });
             await createSubmission({
                 assignmentId,
                 content,

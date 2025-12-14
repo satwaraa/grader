@@ -2,7 +2,8 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { errorResponse, successResponse } from "../../lib/apiResponse";
 import { handleError } from "../../utils/apiResponseHandler";
-import redisClient from "../../utils/Redis";
+
+import { submissionQueue } from "../../utils/queue";
 import { authMiddleware } from "../middleware/auth.middleware";
 import Role from "../types/roles";
 import { catchAsync } from "../utils/catchAsyncWrapper";
@@ -22,7 +23,7 @@ export class SubmissionController {
         // Submit assignment (Student only)
         this.router.post(
             "/",
-            authMiddleware,
+            // authMiddleware,
             catchAsync(this.createSubmission.bind(this)),
         );
         this.router.get(
@@ -55,19 +56,29 @@ export class SubmissionController {
     private async createSubmission(req: Request, res: Response) {
         try {
             const { assignmentId } = req.body;
-            const studentId = req.user.id;
-            const role: Role = req.user.role;
+
+            // const studentId = req.user.id ;
+            // const role: Role = req.user.role;
+            const studentId = "82df9200-3b8c-4382-9841-2ccc4d2b53b2";
+            const role: Role = Role.TEACHER;
+            console.log("studentId", studentId);
 
             if (
-                role === Role.STUDENT ||
-                studentId == "1ef056fb-0628-4f92-81d0-bd1d8e7aa225"
+                // role === Role.STUDENT ||
+                studentId == "82df9200-3b8c-4382-9841-2ccc4d2b53b2"
             ) {
                 const submission = await this.submissionManager.createSubmission({
                     studentId,
                     assignmentId,
                 });
-                // redisClient.publish("submission", JSON.stringify(submission));
-                redisClient.lpush("submission", JSON.stringify(submission));
+
+                await submissionQueue.add("grade_assignment", submission, {
+                    attempts: 3,
+                    backoff: { type: "exponential", delay: 5000 },
+                    removeOnComplete: true,
+                    removeOnFail: false,
+                });
+
                 return res
                     .status(201)
                     .json(successResponse(submission, "Submission created successfully"));

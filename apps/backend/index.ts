@@ -2,7 +2,7 @@ import http from "http";
 import app from "./api/app";
 import router from "./api/router";
 import { initializeSocketIO } from "./src/ws";
-import redisClient from "./utils/Redis";
+// import redisClient from "./utils/redis";
 import S3Client from "./utils/S3client";
 
 const ServerConfig = {
@@ -21,8 +21,8 @@ initializeSocketIO(httpServer);
 const startServer = async () => {
     try {
         // Check Redis connection
-        await redisClient.ping();
-        console.log("✅ Redis connected successfully");
+        // await redisClient.ping();
+        // console.log("✅ Redis connected successfully");
 
         // Check S3 connection
         await S3Client.list();

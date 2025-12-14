@@ -95,4 +95,30 @@ export class SubmissionManager {
             throw new Error("Can't create presignedUrl");
         }
     }
+
+    async updateSubmissionGrade(
+        submissionId: string,
+        data: {
+            score: number;
+            feedback: string;
+            status: "GRADED" | "REVIEWING";
+        },
+    ) {
+        try {
+            return await prisma.submission.update({
+                where: { id: submissionId },
+                data: {
+                    score: data.score,
+                    feedback: data.feedback,
+                    status: data.status,
+                    gradedAt: new Date(),
+                },
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new AppError(error.message, 500);
+            }
+            throw new AppError("Failed to update submission grade", 500);
+        }
+    }
 }
