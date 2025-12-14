@@ -34,7 +34,7 @@ export const assignmentApi = createApi({
         }),
         getAssignment: builder.query<{ success: boolean; data: Assignment }, string>({
             query: (id) => `/assignments/${id}`,
-            providesTags: (result, error, id) => [{ type: 'Assignment', id }],
+            providesTags: (_result, _error, id) => [{ type: 'Assignment', id }],
         }),
 
         // Submission Endpoints
