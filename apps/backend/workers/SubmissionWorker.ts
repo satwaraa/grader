@@ -167,6 +167,15 @@ const worker = new Worker<SubmissionJobData>(
         const { id, public_url, studentId, assignmentId } = job.data;
         console.log(`📝 Processing submission ${id} for student ${studentId}`);
 
+        // Publish start event
+        redis.publish(
+            `submission:${id}`,
+            JSON.stringify({
+                step: "submission_started",
+                percent: 5,
+            }),
+        );
+
         await job.updateProgress(5);
 
         // Create tmp directory in project if it doesn't exist
@@ -175,33 +184,55 @@ const worker = new Worker<SubmissionJobData>(
             fs.mkdirSync(tmpDir, { recursive: true });
         }
 
-        // Download the PDF from public URL
-        console.log(`⬇️  Downloading PDF from: ${public_url}`);
-        const buffer = await fetch(public_url).then((res) => res.arrayBuffer());
         const pdfPath = path.join(tmpDir, `submission_${id}.pdf`);
-        console.log(`💾 Saving PDF to: ${pdfPath}`);
-        fs.writeFileSync(pdfPath, Buffer.from(buffer));
-        console.log(`✅ PDF saved successfully`);
+        const imagesDir = path.join(tmpDir, "extracted_images", id);
 
-        await job.updateProgress(10);
+        try {
+            // Download the PDF from public URL
+            console.log(`⬇️  Downloading PDF from: ${public_url}`);
 
-        // Step 1: Parse PDF with Python
-        console.log(`🚀 Starting Python PDF parser...`);
-        const extractedData = await runPython(id, pdfPath);
-        console.log(`✅ PDF parsing completed. Extracted ${extractedData.length} pages`);
+            redis.publish(
+                `submission:${id}`,
+                JSON.stringify({
+                    step: "downloading_pdf",
+                    percent: 5,
+                }),
+            );
 
-        await job.updateProgress(80);
+            const buffer = await fetch(public_url).then((res) => res.arrayBuffer());
+            console.log(`💾 Saving PDF to: ${pdfPath}`);
+            fs.writeFileSync(pdfPath, Buffer.from(buffer));
+            console.log(`✅ PDF saved successfully`);
 
-        // Step 2: Grade with Gemini
-        console.log(`🤖 Starting Gemini grading...`);
-        const evaluation = await runGeminiGrader(extractedData, assignmentId, id);
-        console.log(`✅ Gemini grading completed. Score: ${evaluation.score}/100`);
+            redis.publish(
+                `submission:${id}`,
+                JSON.stringify({
+                    step: "pdf_downloaded",
+                    percent: 10,
+                }),
+            );
 
-        await job.updateProgress(95);
+            await job.updateProgress(10);
 
-        // Step 3: Update submission in database
-        console.log(`💾 Updating submission in database...`);
-        const fullFeedback = `
+            // Step 1: Parse PDF with Python
+            console.log(`🚀 Starting Python PDF parser...`);
+            const extractedData = await runPython(id, pdfPath);
+            console.log(
+                `✅ PDF parsing completed. Extracted ${extractedData.length} pages`,
+            );
+
+            await job.updateProgress(80);
+
+            // Step 2: Grade with Gemini
+            console.log(`🤖 Starting Gemini grading...`);
+            const evaluation = await runGeminiGrader(extractedData, assignmentId, id);
+            console.log(`✅ Gemini grading completed. Score: ${evaluation.score}/100`);
+
+            await job.updateProgress(95);
+
+            // Step 3: Update submission in database
+            console.log(`💾 Updating submission in database...`);
+            const fullFeedback = `
 **Summary:** ${evaluation.summary}
 
 **Score:** ${evaluation.score}/100
@@ -222,31 +253,59 @@ ${
 
 **Detailed Feedback:**
 ${evaluation.feedback}
-        `.trim();
+            `.trim();
 
-        await submissionManager.updateSubmissionGrade(id, {
-            score: evaluation.score,
-            feedback: fullFeedback,
-            status: "GRADED",
-        });
-
-        console.log(`✅ Submission updated in database`);
-
-        // Publish final completion event
-        redis.publish(
-            `submission:${id}`,
-            JSON.stringify({
-                step: "grading_completed",
-                percent: 100,
+            await submissionManager.updateSubmissionGrade(id, {
                 score: evaluation.score,
+                feedback: fullFeedback,
                 status: "GRADED",
-            }),
-        );
+            });
 
-        await job.updateProgress(100);
-        console.log(`🎉 Job ${job.id} completed successfully!`);
+            console.log(`✅ Submission updated in database`);
 
-        return true;
+            // Publish final completion event
+            redis.publish(
+                `submission:${id}`,
+                JSON.stringify({
+                    step: "grading_completed",
+                    percent: 100,
+                    score: evaluation.score,
+                    status: "GRADED",
+                }),
+            );
+
+            await job.updateProgress(100);
+            console.log(`🎉 Job ${job.id} completed successfully!`);
+
+            return true;
+        } catch (error: any) {
+            console.error(`❌ Job ${job.id} failed:`, error);
+
+            // Publish error event
+            redis.publish(
+                `submission:${id}`,
+                JSON.stringify({
+                    error: error.message || "Unknown error occurred during grading",
+                    step: "failed",
+                }),
+            );
+
+            throw error;
+        } finally {
+            // Cleanup
+            try {
+                if (fs.existsSync(pdfPath)) {
+                    fs.unlinkSync(pdfPath);
+                    console.log(`🧹 Deleted temp PDF: ${pdfPath}`);
+                }
+                if (fs.existsSync(imagesDir)) {
+                    fs.rmSync(imagesDir, { recursive: true, force: true });
+                    console.log(`🧹 Deleted extracted images: ${imagesDir}`);
+                }
+            } catch (cleanupErr) {
+                console.error("⚠️ Cleanup failed:", cleanupErr);
+            }
+        }
     },
     {
         connection: redis,

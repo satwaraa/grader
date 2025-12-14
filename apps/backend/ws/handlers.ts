@@ -55,8 +55,17 @@ export const presenceHandlers = (socket: Socket) => {
     });
 };
 
+// Example: Submission handlers
+export const submissionHandlers = (socket: Socket) => {
+    socket.on("watch-submission", (submissionId: string) => {
+        socket.join(submissionId);
+        console.log(`Socket ${socket.id} watching submission ${submissionId}`);
+    });
+};
+
 export default {
     chatHandlers,
     notificationHandlers,
     presenceHandlers,
+    submissionHandlers,
 };

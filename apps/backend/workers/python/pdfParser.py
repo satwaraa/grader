@@ -33,7 +33,7 @@ os.makedirs(output_dir, exist_ok=True)
 publish({
     "step": "parsing_started",
     "total_pages": total_pages,
-    "percent": 0
+    "percent": 10
 })
 
 extracted_data = []
@@ -69,11 +69,13 @@ for page_num in range(total_pages):
     })
 
     # ----- PROGRESS EVENT -----
+    # Map progress from 10% to 80%
+    current_percent = 10 + int((page_num + 1) / total_pages * 70)
     publish({
         "step": "page_parsed",
         "page": page_num + 1,
         "total_pages": total_pages,
-        "percent": int((page_num + 1) / total_pages * 80)
+        "percent": current_percent
     })
 
 doc.close()
@@ -81,6 +83,6 @@ doc.close()
 # Final completion event
 publish({
     "step": "parsing_completed",
-    "percent": 100,
+    "percent": 80,
     "result": extracted_data
 })

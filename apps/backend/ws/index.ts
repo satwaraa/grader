@@ -1,4 +1,9 @@
-export { chatHandlers, notificationHandlers, presenceHandlers } from "./handlers";
+export {
+    chatHandlers,
+    notificationHandlers,
+    presenceHandlers,
+    submissionHandlers,
+} from "./handlers";
 export { getIO, initializeSocketIO } from "./socket";
 export {
     broadcastExcept,

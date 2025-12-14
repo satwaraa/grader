@@ -1,7 +1,7 @@
 import http from "http";
 import app from "./api/app";
 import router from "./api/router";
-import { initializeSocketIO } from "./src/ws";
+import { initializeSocketIO } from "./ws";
 // import redisClient from "./utils/redis";
 import S3Client from "./utils/S3client";
 

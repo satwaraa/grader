@@ -1,6 +1,7 @@
 import { CheckCircle, FileText, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useSocket } from '../context/SocketContext';
 import {
     useCreateSubmissionMutation,
     useGetAssignmentQuery,
@@ -18,6 +19,15 @@ const AssignmentUpload: React.FC = () => {
         key: string;
     } | null>(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
+
+    // Real-time grading state
+    const { socket } = useSocket();
+    const [progressLogs, setProgressLogs] = useState<string[]>([]);
+    const [progressPercent, setProgressPercent] = useState(0);
+    const [gradingStatus, setGradingStatus] = useState<
+        'idle' | 'processing' | 'completed' | 'failed'
+    >('idle');
+
     const [getUploadUrl] = useLazyGetUploadUrlQuery();
     const { data: assignmentData, isLoading } = useGetAssignmentQuery(assignmentId || '', {
         skip: !assignmentId,
@@ -39,6 +49,71 @@ const AssignmentUpload: React.FC = () => {
 
     const [createSubmission, { isLoading: isSubmitting }] = useCreateSubmissionMutation();
     const [markSubmission] = useSubmitAssignmentMutation();
+
+    // Socket listener
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleProgress = (event: any) => {
+            console.log('Progress Event:', event);
+
+            if (event.error) {
+                setGradingStatus('failed');
+                setProgressLogs((prev) => [...prev, `❌ Error: ${event.error}`]);
+                return;
+            }
+
+            if (event.percent) setProgressPercent(event.percent);
+
+            let logMessage = '';
+            switch (event.step) {
+                case 'submission_started':
+                    logMessage = '🚀 Starting submission processing...';
+                    break;
+                case 'downloading_pdf':
+                    logMessage = '⬇️ Downloading assignment file...';
+                    break;
+                case 'pdf_downloaded':
+                    logMessage = '✅ Download complete.';
+                    break;
+                case 'parsing_started':
+                    logMessage = '📄 Analyzing document structure...';
+                    break;
+                case 'page_parsed':
+                    logMessage = `📄 Reading page ${event.page}/${event.total_pages}...`;
+                    break;
+                case 'parsing_completed':
+                    logMessage = '✅ Document analysis complete.';
+                    break;
+                case 'gemini_started':
+                    logMessage = '🤖 AI Grader initialized.';
+                    break;
+                case 'gemini_processing':
+                    logMessage = '🧠 Evaluating content and generating feedback...';
+                    break;
+                case 'gemini_completed':
+                    logMessage = '✨ AI evaluation finished.';
+                    break;
+                case 'grading_completed':
+                    logMessage = `🎉 Grading completed! Score: ${event.score}/100`;
+                    setGradingStatus('completed');
+                    break;
+                default:
+                    if (event.step) logMessage = `ℹ️ ${event.step}`;
+            }
+
+            if (logMessage) {
+                setProgressLogs((prev) => [...prev, logMessage]);
+            }
+        };
+
+        socket.on('submission-progress', handleProgress);
+
+        return () => {
+            socket.off('submission-progress', handleProgress);
+        };
+    }, [socket]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             // console.log(e.target.files[0]);
@@ -63,9 +138,24 @@ const AssignmentUpload: React.FC = () => {
 
             if (response.ok) {
                 console.log('Upload successful!');
-                if (assignmentId) markSubmission({ assignmentId });
-                // const publicUrl = uploadData.url.split("?")[0];
-                // console.log("Public URL:", publicUrl);
+                if (assignmentId) {
+                    try {
+                        const res = await markSubmission({ assignmentId }).unwrap();
+                        console.log('Submission created:', res);
+                        // Assuming res.data contains the submission object with id
+                        const submissionId = res.data?.id;
+
+                        if (socket && submissionId) {
+                            setGradingStatus('processing');
+                            setProgressLogs(['🚀 Submission received, starting grading...']);
+                            socket.emit('watch-submission', submissionId);
+                        }
+
+                        setIsSubmitted(true);
+                    } catch (err) {
+                        console.error('Failed to mark submission:', err);
+                    }
+                }
             } else {
                 console.error('Upload failed.');
             }
@@ -76,6 +166,8 @@ const AssignmentUpload: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        // This seems to be an alternative submit method, but handleUpload seems to be the main one for file upload
+        // Keeping it as is for now, but handleUpload is where we integrated the logic
         if (!file || !assignmentId) return;
 
         try {
@@ -124,9 +216,34 @@ const AssignmentUpload: React.FC = () => {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                         Submission Received!
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400">
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">
                         Your assignment has been successfully uploaded.
                     </p>
+
+                    {gradingStatus !== 'idle' && (
+                        <div className="mt-6 text-left">
+                            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+                                Grading Progress
+                            </h3>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+                                <div
+                                    className={`h-2.5 rounded-full transition-all duration-500 ${
+                                        gradingStatus === 'failed' ? 'bg-red-600' : 'bg-blue-600'
+                                    }`}
+                                    style={{ width: `${progressPercent}%` }}></div>
+                            </div>
+                            <div className="h-48 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 text-sm font-mono text-gray-700 dark:text-gray-300">
+                                {progressLogs.map((log, i) => (
+                                    <div key={i} className="mb-1">
+                                        {log}
+                                    </div>
+                                ))}
+                                {gradingStatus === 'processing' && (
+                                    <div className="animate-pulse">...</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
