@@ -32,19 +32,26 @@ RUN bun build workers/SubmissionWorker.ts --outdir dist/workers --target bun
 FROM base AS prod
 WORKDIR /app
 
-# Install Python + system deps
-RUN apk add --no-cache python3 py3-pip build-base python3-dev cargo
+# Install Python (runtime only, no build deps yet)
+RUN apk add --no-cache python3 py3-pip
 
-# Copy JS deps
+# Copy JS deps and Prisma stuff
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY --from=deps /app/generated ./generated
 
+# Copy Python requirements first
+COPY workers/python/requirements.txt ./workers/python/
+
+# Install Python deps with build tools, then remove build tools
+# Using retries and timeout settings to handle network issues
+RUN apk add --no-cache --virtual .build-deps build-base python3-dev cargo && \
+    pip3 install --no-cache-dir --default-timeout=100 --retries=5 \
+    -r workers/python/requirements.txt --break-system-packages && \
+    apk del .build-deps
+
 # Copy Python scripts
 COPY workers/python ./workers/python
-
-# Install Python libs
-RUN pip3 install -r workers/python/requirements.txt --break-system-packages
 
 # Copy built worker
 COPY --from=builder /app/dist ./dist
