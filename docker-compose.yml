@@ -1,4 +1,7 @@
 services:
+  # ---------------------------
+  #  PostgreSQL
+  # ---------------------------
   postgres:
     image: postgres:16-alpine
     container_name: postgres
@@ -6,13 +9,17 @@ services:
     ports:
       - "5432:5432"
     environment:
-      environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lpu-network
 
+  # ---------------------------
+  #  Redis (Queue + Pub/Sub)
+  # ---------------------------
   redis:
     image: redis:7-alpine
     container_name: assignment-grader-redis
@@ -20,59 +27,111 @@ services:
       - "6380:6379"
     volumes:
       - redis_data:/data
-    restart: "always"
+    restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-  # Backend API
-  backend:
+    networks:
+      - lpu-network
+
+  # ---------------------------
+  #  Backend API (Bun Only)
+  # ---------------------------
+  api:
     build:
       context: ./apps/backend
-      dockerfile: Dockerfile
-    container_name: assignment-grader-backend
+      dockerfile: Dockerfile.api
+    container_name: assignment-grader-api
     restart: unless-stopped
     ports:
       - "8600:8600"
     environment:
       NODE_ENV: production
       PORT: 8600
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      ACCESSKEYID: ${ACCESSKEYID}
+      SECRETACCESSKEY: ${SECRETACCESSKEY}
+      BUCKET_NAME: ${BUCKET_NAME}
+      R2_ENDPOINT: ${R2_ENDPOINT}
+      PUBLIC_ENDPOINT: ${PUBLIC_ENDPOINT}
+    depends_on:
+      - redis
+      - postgres
     networks:
       - lpu-network
-    volumes:
-      - ./apps/backend/uploads:/app/uploads
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8600/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    command: ["bun", "dist/index.js"]
 
-  # Frontend App
+  # ---------------------------
+  #  WebSocket Server
+  # ---------------------------
+  ws:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.api
+    container_name: assignment-grader-ws
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      NODE_ENV: production
+      PORT: 9000
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - lpu-network
+    command: ["bun", "dist/ws/index.js"]
+
+  # ---------------------------
+  #  Worker (Node + Python)
+  # ---------------------------
+  worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.workers
+    container_name: assignment-grader-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      ACCESSKEYID: ${ACCESSKEYID}
+      SECRETACCESSKEY: ${SECRETACCESSKEY}
+      BUCKET_NAME: ${BUCKET_NAME}
+      R2_ENDPOINT: ${R2_ENDPOINT}
+      PUBLIC_ENDPOINT: ${PUBLIC_ENDPOINT}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - lpu-network
+
+  # ---------------------------
+  #  Frontend
+  # ---------------------------
   frontend:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: http://localhost:8600/api
     container_name: assignment-grader-frontend
     restart: unless-stopped
     ports:
       - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8600/api
     depends_on:
-      - backend
+      - api
     networks:
       - lpu-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+
 volumes:
   redis_data:
   postgres_data:
+
 networks:
   lpu-network:
     driver: bridge

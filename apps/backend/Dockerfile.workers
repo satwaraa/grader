@@ -1,0 +1,52 @@
+# -----------------------------
+# Base image: Bun + Node
+# -----------------------------
+FROM oven/bun:1-alpine AS base
+WORKDIR /app
+
+# -----------------------------
+# Dependencies
+# -----------------------------
+FROM base AS deps
+
+COPY package.json bun.lockb* ./
+COPY prisma ./prisma/
+COPY prisma.config.ts ./
+
+RUN bun install --frozen-lockfile
+ENV DATABASE_URL="postgresql://dummy:5432/dummy"
+RUN bunx prisma generate
+
+# -----------------------------
+# Build worker
+# -----------------------------
+FROM deps AS builder
+
+COPY . .
+
+RUN bun build workers/SubmissionWorker.ts --outdir dist/workers --target bun
+
+# -----------------------------
+# Production image
+# -----------------------------
+FROM base AS prod
+WORKDIR /app
+
+# Install Python + system deps
+RUN apk add --no-cache python3 py3-pip build-base python3-dev cargo
+
+# Copy JS deps
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
+COPY --from=deps /app/generated ./generated
+
+# Copy Python scripts
+COPY workers/python ./workers/python
+
+# Install Python libs
+RUN pip3 install -r workers/python/requirements.txt --break-system-packages
+
+# Copy built worker
+COPY --from=builder /app/dist ./dist
+
+CMD ["bun", "dist/workers/SubmissionWorker.js"]
