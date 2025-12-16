@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { errorResponse, successResponse } from "../../lib/apiResponse";
-import { handleError } from "../../utils/apiResponseHandler";
+import { AppError, handleError } from "../../utils/apiResponseHandler";
 
 import { submissionQueue } from "../../utils/queue";
 import { authMiddleware } from "../middleware/auth.middleware";
@@ -25,6 +25,11 @@ export class SubmissionController {
             "/",
             // authMiddleware,
             catchAsync(this.createSubmission.bind(this)),
+        );
+        this.router.post(
+            "/verifyAssignmentOtp",
+            // authMiddleware,
+            catchAsync(this.verifyAssignmentOtp.bind(this)),
         );
         this.router.get(
             "/uploadUrl",
@@ -55,7 +60,8 @@ export class SubmissionController {
 
     private async createSubmission(req: Request, res: Response) {
         try {
-            const { assignmentId } = req.body;
+            const { assignmentId, otp } = req.body;
+            console.log(assignmentId, otp);
 
             // const studentId = req.user.id ;
             // const role: Role = req.user.role;
@@ -65,11 +71,13 @@ export class SubmissionController {
 
             if (
                 // role === Role.STUDENT ||
-                studentId == "82df9200-3b8c-4382-9841-2ccc4d2b53b2"
+                studentId == "82df9200-3b8c-4382-9841-2ccc4d2b53b2" &&
+                otp
             ) {
                 const submission = await this.submissionManager.createSubmission({
                     studentId,
                     assignmentId,
+                    otp,
                 });
 
                 await submissionQueue.add("grade_assignment", submission, {
@@ -83,6 +91,7 @@ export class SubmissionController {
                     .status(201)
                     .json(successResponse(submission, "Submission created successfully"));
             }
+            return res.status(404).json({ message: "cant find assignmentId or otp" });
         } catch (error) {
             handleError(res, error);
         }
@@ -156,5 +165,27 @@ export class SubmissionController {
             .json(
                 successResponse(submissions, "Recent submissions fetched successfully"),
             );
+    }
+    public async verifyAssignmentOtp(req: Request, res: Response) {
+        try {
+            const { otp, assignmentId } = req.body as unknown as {
+                otp: string;
+                assignmentId: string;
+            };
+            if (!otp || !assignmentId) {
+                throw new AppError("Otp or assignment id not found", 404);
+            }
+            const Verified = await this.submissionManager.verifyAssignmentOtp(
+                assignmentId,
+                otp,
+            );
+
+            if (Verified) {
+                return res.status(200).json({ message: "verified" });
+            }
+            return res.status(403).json({ message: "invalid otp" });
+        } catch (error) {
+            return handleError(res, error);
+        }
     }
 }

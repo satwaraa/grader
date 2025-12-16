@@ -3,20 +3,44 @@ import { AppError } from "../../utils/apiResponseHandler";
 import Client from "../../utils/S3client";
 
 export class SubmissionManager {
-    async createSubmission(data: { studentId: string; assignmentId: string }) {
+    async createSubmission(data: {
+        studentId: string;
+        assignmentId: string;
+        otp: string;
+    }) {
         try {
+            const otpVarification = await prisma.assignment.findFirst({
+                where: {
+                    id: data.assignmentId,
+                },
+            });
+            if (otpVarification && data.otp == otpVarification.otp) {
+                console.log(otpVarification && data.otp == otpVarification.otp);
+            } else {
+                throw new AppError("Can't validate otp", 403);
+            }
             if (process.env.PUBLIC_ENDPOINT) {
                 const assignmentPublicUrl = `${process.env.PUBLIC_ENDPOINT}/${data.assignmentId}/${data.studentId}`;
-
                 return prisma.submission.create({
-                    data: { ...data, public_url: assignmentPublicUrl },
+                    data: {
+                        assignmentId: data.assignmentId,
+                        studentId: data.studentId,
+                        public_url: assignmentPublicUrl,
+                    },
                 });
+                // return prisma.submission.create({
+                //     data: { ...data, public_url: assignmentPublicUrl },
+                // });
             }
             throw new AppError("cant generate public url", 500);
         } catch (error) {
+            if (error instanceof AppError) {
+                throw new AppError(error.message, error.statusCode);
+            }
             if (error instanceof Error) {
                 throw new AppError(error.message, 500);
             }
+
             throw new AppError("something went wrong", 500);
         }
     }
@@ -119,6 +143,21 @@ export class SubmissionManager {
                 throw new AppError(error.message, 500);
             }
             throw new AppError("Failed to update submission grade", 500);
+        }
+    }
+    async verifyAssignmentOtp(assignmentId: string, otp: string) {
+        try {
+            const verified = await prisma.assignment.findFirst({
+                where: {
+                    id: assignmentId,
+                    otp: otp,
+                },
+            });
+            return verified;
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new AppError(error.message, 500);
+            }
         }
     }
 }

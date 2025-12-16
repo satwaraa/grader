@@ -1,12 +1,20 @@
 import { CheckCircle, FileText, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
 import { useSocket } from '../context/SocketContext';
 import {
-    useCreateSubmissionMutation,
     useGetAssignmentQuery,
     useLazyGetUploadUrlQuery,
     useSubmitAssignmentMutation,
+    useVerifyOtpMutation,
 } from '../features/assignments/assignmentApi';
 
 const AssignmentUpload: React.FC = () => {
@@ -14,11 +22,16 @@ const AssignmentUpload: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>();
     const [fileType, setFileType] = useState<string>();
-    const [uploadData, setUploadData] = useState<{
-        url: string;
-        key: string;
-    } | null>(null);
+    // const [uploadData, setUploadData] = useState<{
+    //     url: string;
+    //     key: string;
+    // } | null>(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
+
+    // OTP Dialog state
+    const [showOtpDialog, setShowOtpDialog] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [otpError, setOtpError] = useState('');
 
     // Real-time grading state
     const { socket } = useSocket();
@@ -29,25 +42,12 @@ const AssignmentUpload: React.FC = () => {
     >('idle');
 
     const [getUploadUrl] = useLazyGetUploadUrlQuery();
+    const [verifyOtp, { isLoading: isVerifyingOtp }] = useVerifyOtpMutation();
     const { data: assignmentData, isLoading } = useGetAssignmentQuery(assignmentId || '', {
         skip: !assignmentId,
     });
-    useEffect(() => {
-        if (fileName && fileType) {
-            console.log('getting url');
-            if (assignmentId) {
-                getUploadUrl({ fileName: fileName, type: fileType, assignmentId })
-                    .unwrap()
-                    .then((data) => {
-                        console.log(data);
-                        setUploadData(data);
-                    })
-                    .catch((err) => console.log(err));
-            }
-        }
-    }, [fileName, fileType]);
 
-    const [createSubmission, { isLoading: isSubmitting }] = useCreateSubmissionMutation();
+    // const [createSubmission, { isLoading: isSubmitting }] = useCreateSubmissionMutation();
     const [markSubmission] = useSubmitAssignmentMutation();
 
     // Socket listener
@@ -123,12 +123,59 @@ const AssignmentUpload: React.FC = () => {
         }
     };
 
-    const handleUpload = async () => {
-        if (!file || !uploadData) return;
+    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+        setOtp(value);
+        setOtpError('');
+    };
+
+    const handleUploadClick = () => {
+        if (!file) return;
+        setShowOtpDialog(true);
+    };
+
+    const handleOtpSubmit = async () => {
+        if (otp.length !== 4) {
+            setOtpError('Please enter a 4-digit OTP');
+            return;
+        }
+
+        try {
+            if (!assignmentId) return;
+
+            // 1. Verify OTP
+            await verifyOtp({ assignmentId, otp }).unwrap();
+
+            // 2. Get Upload URL
+            if (file && fileName && fileType) {
+                const urlData = await getUploadUrl({
+                    fileName: fileName,
+                    type: fileType,
+                    assignmentId,
+                }).unwrap();
+
+                // setUploadData(urlData);
+                setShowOtpDialog(false);
+
+                // 3. Upload
+                await performUpload(urlData);
+            }
+        } catch (err: any) {
+            console.error('Verification or Upload failed', err);
+            if (err?.status === 403 || err?.data?.message === 'invalid otp') {
+                setOtpError('Invalid OTP');
+            } else {
+                setOtpError('Verification failed. Please try again.');
+            }
+        }
+    };
+
+    const performUpload = async (currentUploadData: { url: string; key: string }) => {
+        if (!file || !currentUploadData) return;
 
         try {
             console.log('Starting upload...');
-            const response = await fetch(uploadData.url, {
+            const response = await fetch(currentUploadData.url, {
                 method: 'PUT',
                 body: file,
                 headers: {
@@ -140,7 +187,10 @@ const AssignmentUpload: React.FC = () => {
                 console.log('Upload successful!');
                 if (assignmentId) {
                     try {
-                        const res = await markSubmission({ assignmentId }).unwrap();
+                        const res = await markSubmission({
+                            assignmentId,
+                            otp,
+                        }).unwrap();
                         console.log('Submission created:', res);
                         // Assuming res.data contains the submission object with id
                         const submissionId = res.data?.id;
@@ -161,30 +211,6 @@ const AssignmentUpload: React.FC = () => {
             }
         } catch (error) {
             console.error('Error uploading file:', error);
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        // This seems to be an alternative submit method, but handleUpload seems to be the main one for file upload
-        // Keeping it as is for now, but handleUpload is where we integrated the logic
-        if (!file || !assignmentId) return;
-
-        try {
-            const content = `File: ${file.name} (Size: ${file.size} bytes)`;
-            console.log({
-                assignmentId,
-                content,
-            });
-            await createSubmission({
-                assignmentId,
-                content,
-            }).unwrap();
-
-            setIsSubmitted(true);
-        } catch (error) {
-            console.error('Failed to submit assignment', error);
-            alert('Failed to submit assignment');
         }
     };
 
@@ -275,7 +301,7 @@ const AssignmentUpload: React.FC = () => {
                             </p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-6">
                             <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 text-center hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors bg-gray-50 dark:bg-gray-800/30">
                                 <input
                                     type="file"
@@ -315,25 +341,69 @@ const AssignmentUpload: React.FC = () => {
                             </div>
 
                             <div className="flex justify-end gap-4">
-                                <button
+                                {/* <button
                                     type="button"
-                                    onClick={handleUpload}
+                                    onClick={handleUploadClick}
                                     disabled={!file || !uploadData}
                                     className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
                                     <Upload className="h-5 w-5" />
                                     Upload File
-                                </button>
+                                </button> */}
                                 <button
-                                    type="submit"
-                                    disabled={!file || isSubmitting}
+                                    type="button"
+                                    onClick={handleUploadClick}
+                                    disabled={!file}
                                     className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
                                     <CheckCircle className="h-5 w-5" />
-                                    {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
+                                    'Submit Assignment'
                                 </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
+
+                {/* OTP Dialog */}
+                <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Enter OTP</DialogTitle>
+                            <DialogDescription>
+                                Please enter the 4-digit OTP to verify and submit your assignment.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-4 py-4">
+                            <div className="flex flex-col gap-2">
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="\d{4}"
+                                    maxLength={4}
+                                    value={otp}
+                                    onChange={handleOtpChange}
+                                    placeholder="Enter 4-digit OTP"
+                                    className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white"
+                                    autoFocus
+                                />
+                                {otpError && <p className="text-sm text-red-500">{otpError}</p>}
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <button
+                                type="button"
+                                onClick={() => setShowOtpDialog(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleOtpSubmit}
+                                disabled={otp.length !== 4 || isVerifyingOtp}
+                                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                {isVerifyingOtp ? 'Verifying...' : 'Verify & Submit'}
+                            </button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

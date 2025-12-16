@@ -80,9 +80,16 @@ export const assignmentApi = createApi({
                 },
             }),
         }),
-        submitAssignment: builder.mutation<any, { assignmentId: string }>({
+        submitAssignment: builder.mutation<any, { assignmentId: string; otp: string }>({
             query: (body) => ({
                 url: '/submissions/',
+                method: 'POST',
+                body: body,
+            }),
+        }),
+        verifyOtp: builder.mutation<any, { assignmentId: string; otp: string }>({
+            query: (body) => ({
+                url: '/submissions/verifyAssignmentOtp',
                 method: 'POST',
                 body: body,
             }),
@@ -101,4 +108,5 @@ export const {
     useGetAssignmentSubmissionsQuery,
     useLazyGetUploadUrlQuery,
     useSubmitAssignmentMutation,
+    useVerifyOtpMutation,
 } = assignmentApi;

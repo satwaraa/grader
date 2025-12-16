@@ -1,7 +1,4 @@
 services:
-  # ---------------------------
-  #  PostgreSQL
-  # ---------------------------
   postgres:
     image: postgres:16-alpine
     container_name: postgres
@@ -17,9 +14,6 @@ services:
     networks:
       - lpu-network
 
-  # ---------------------------
-  #  Redis (Queue + Pub/Sub)
-  # ---------------------------
   redis:
     image: redis:7-alpine
     container_name: assignment-grader-redis
@@ -35,10 +29,6 @@ services:
       retries: 5
     networks:
       - lpu-network
-
-  # ---------------------------
-  #  Backend API (Bun Only)
-  # ---------------------------
   api:
     build:
       context: ./apps/backend
@@ -64,9 +54,6 @@ services:
       - lpu-network
     command: ["bun", "dist/index.js"]
 
-  # ---------------------------
-  #  WebSocket Server
-  # ---------------------------
   ws:
     build:
       context: ./apps/backend
@@ -85,9 +72,6 @@ services:
       - lpu-network
     command: ["bun", "dist/ws/index.js"]
 
-  # ---------------------------
-  #  Worker (Node + Python)
-  # ---------------------------
   worker:
     build:
       context: ./apps/backend
@@ -109,10 +93,6 @@ services:
       - postgres
     networks:
       - lpu-network
-
-  # ---------------------------
-  #  Frontend
-  # ---------------------------
   frontend:
     build:
       context: ./apps/frontend
