@@ -23,12 +23,12 @@ export class SubmissionController {
         // Submit assignment (Student only)
         this.router.post(
             "/",
-            // authMiddleware,
+            authMiddleware,
             catchAsync(this.createSubmission.bind(this)),
         );
         this.router.post(
             "/verifyAssignmentOtp",
-            // authMiddleware,
+            authMiddleware,
             catchAsync(this.verifyAssignmentOtp.bind(this)),
         );
         this.router.get(
@@ -60,24 +60,16 @@ export class SubmissionController {
 
     private async createSubmission(req: Request, res: Response) {
         try {
-            const { assignmentId, otp } = req.body;
-            console.log(assignmentId, otp);
+            const { assignmentId } = req.body;
+            console.log(assignmentId);
 
-            // const studentId = req.user.id ;
-            // const role: Role = req.user.role;
-            const studentId = "82df9200-3b8c-4382-9841-2ccc4d2b53b2";
-            const role: Role = Role.TEACHER;
-            console.log("studentId", studentId);
+            const studentId = req.user.id;
+            const role: Role = req.user.role;
 
-            if (
-                // role === Role.STUDENT ||
-                studentId == "82df9200-3b8c-4382-9841-2ccc4d2b53b2" &&
-                otp
-            ) {
+            if (role === Role.STUDENT) {
                 const submission = await this.submissionManager.createSubmission({
                     studentId,
                     assignmentId,
-                    otp,
                 });
 
                 await submissionQueue.add("grade_assignment", submission, {

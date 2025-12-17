@@ -4,6 +4,7 @@ import { type TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux
 import { assignmentApi } from '../features/assignments/assignmentApi';
 import { authApi } from '../features/auth/authApi';
 import authReducer from '../features/auth/authSlice';
+import { rubricApi } from '../features/rubrics/rubricApi';
 import { unauthenticatedMiddleware } from './middleware';
 
 export const store = configureStore({
@@ -11,11 +12,13 @@ export const store = configureStore({
         auth: authReducer,
         [authApi.reducerPath]: authApi.reducer,
         [assignmentApi.reducerPath]: assignmentApi.reducer,
+        [rubricApi.reducerPath]: rubricApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(
             authApi.middleware,
             assignmentApi.middleware,
+            rubricApi.middleware,
             unauthenticatedMiddleware
         ),
 });

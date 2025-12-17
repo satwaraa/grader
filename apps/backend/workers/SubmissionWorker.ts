@@ -4,6 +4,7 @@ import fs from "fs";
 // import { config } from "dotenv";
 import path from "path";
 import { SubmissionManager } from "../api/submission/submission.manager";
+import { prisma } from "../lib/prisma";
 import { redis } from "../utils/redis";
 
 // Load environment variables from parent directory
@@ -94,6 +95,7 @@ function runGeminiGrader(
     extractedData: ParsedPage[],
     assignmentId: string,
     submissionId: string,
+    context: { rubric?: any; description?: string } = {},
 ): Promise<GeminiEvaluation> {
     return new Promise<GeminiEvaluation>((resolve, reject) => {
         const script = path.join(__dirname, "python", "geminiGrader.py");
@@ -101,6 +103,7 @@ function runGeminiGrader(
 
         // Pass extracted data as JSON string
         const extractedDataJson = JSON.stringify(extractedData);
+        const contextJson = JSON.stringify(context);
 
         // Get the backend directory to find .env file
         const backendDir = path.join(__dirname, "..");
@@ -110,7 +113,7 @@ function runGeminiGrader(
 
         const proc = spawn(
             "python3",
-            [script, extractedDataJson, assignmentId, submissionId],
+            [script, extractedDataJson, assignmentId, submissionId, contextJson],
             {
                 env: {
                     ...process.env,
@@ -225,7 +228,28 @@ const worker = new Worker<SubmissionJobData>(
 
             // Step 2: Grade with Gemini
             console.log(`🤖 Starting Gemini grading...`);
-            const evaluation = await runGeminiGrader(extractedData, assignmentId, id);
+
+            // Fetch assignment details including rubric
+            const assignment = await prisma.assignment.findUnique({
+                where: { id: assignmentId },
+                include: { rubric: true },
+            });
+
+            if (!assignment) {
+                throw new Error(`Assignment not found: ${assignmentId}`);
+            }
+
+            const context = {
+                rubric: assignment.rubric || undefined,
+                description: assignment.description || undefined,
+            };
+
+            const evaluation = await runGeminiGrader(
+                extractedData,
+                assignmentId,
+                id,
+                context,
+            );
             console.log(`✅ Gemini grading completed. Score: ${evaluation.score}/100`);
 
             await job.updateProgress(95);

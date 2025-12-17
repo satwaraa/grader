@@ -1,16 +1,19 @@
-import { Award, BarChart3, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
+import { Award, BarChart3, FileText, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAppSelector } from '../app/store';
+import RubricManager from '../components/RubricManager';
 import {
     useCreateAssignmentMutation,
     useGetRecentSubmissionsQuery,
     useGetTeacherAssignmentsQuery,
 } from '../features/assignments/assignmentApi';
 import { selectCurrentUser } from '../features/auth/authSlice';
+import { useGetRubricsQuery } from '../features/rubrics/rubricApi';
 
 const Dashboard: React.FC = () => {
     const user = useAppSelector(selectCurrentUser);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isRubricManagerOpen, setIsRubricManagerOpen] = useState(false);
     const isTeacher = user?.role === 'TEACHER';
 
     // API Hooks
@@ -20,6 +23,7 @@ const Dashboard: React.FC = () => {
         });
     const { data: submissionsData, isLoading: isSubmissionsLoading } =
         useGetRecentSubmissionsQuery();
+    const { data: rubricsData } = useGetRubricsQuery(undefined, { skip: !isTeacher });
     const [createAssignment, { isLoading: isCreating }] = useCreateAssignmentMutation();
 
     // Form State
@@ -27,6 +31,7 @@ const Dashboard: React.FC = () => {
     const [description, setDescription] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [maxScore, setMaxScore] = useState('100');
+    const [selectedRubricId, setSelectedRubricId] = useState<string>('');
 
     const handleCreateAssignment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,11 +41,13 @@ const Dashboard: React.FC = () => {
                 description,
                 dueDate,
                 maxScore: parseInt(maxScore),
+                rubricId: selectedRubricId || undefined,
             }).unwrap();
             setIsCreateModalOpen(false);
             setTitle('');
             setDescription('');
             setDueDate('');
+            setSelectedRubricId('');
             alert('Assignment created successfully!');
         } catch (error) {
             console.error('Failed to create assignment', error);
@@ -74,6 +81,9 @@ const Dashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 transition-colors duration-300 relative">
+            {/* Rubric Manager Modal */}
+            {isRubricManagerOpen && <RubricManager onClose={() => setIsRubricManagerOpen(false)} />}
+
             {/* Create Assignment Modal */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -129,6 +139,22 @@ const Dashboard: React.FC = () => {
                                     onChange={(e) => setMaxScore(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    Rubric (Optional)
+                                </label>
+                                <select
+                                    value={selectedRubricId}
+                                    onChange={(e) => setSelectedRubricId(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent">
+                                    <option value="">No Rubric</option>
+                                    {rubricsData?.data.map((rubric) => (
+                                        <option key={rubric.id} value={rubric.id}>
+                                            {rubric.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <button
                                 type="submit"
@@ -218,10 +244,15 @@ const Dashboard: React.FC = () => {
                 {/* Active Assignments (Teacher Only) */}
                 {isTeacher && (
                     <div className="bg-white dark:bg-gray-900/30 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden backdrop-blur-sm shadow-sm dark:shadow-none mb-10">
-                        <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
+                        <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                                 Active Assignments
                             </h3>
+                            <button
+                                onClick={() => setIsRubricManagerOpen(true)}
+                                className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
+                                <FileText className="h-4 w-4" /> Manage Rubrics
+                            </button>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">

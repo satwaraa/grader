@@ -3,22 +3,8 @@ import { AppError } from "../../utils/apiResponseHandler";
 import Client from "../../utils/S3client";
 
 export class SubmissionManager {
-    async createSubmission(data: {
-        studentId: string;
-        assignmentId: string;
-        otp: string;
-    }) {
+    async createSubmission(data: { studentId: string; assignmentId: string }) {
         try {
-            const otpVarification = await prisma.assignment.findFirst({
-                where: {
-                    id: data.assignmentId,
-                },
-            });
-            if (otpVarification && data.otp == otpVarification.otp) {
-                console.log(otpVarification && data.otp == otpVarification.otp);
-            } else {
-                throw new AppError("Can't validate otp", 403);
-            }
             if (process.env.PUBLIC_ENDPOINT) {
                 const assignmentPublicUrl = `${process.env.PUBLIC_ENDPOINT}/${data.assignmentId}/${data.studentId}`;
                 return prisma.submission.create({

@@ -8,6 +8,7 @@ export class AssignmentManager {
         dueDate?: Date;
         otp: string;
         teacherId: string;
+        rubricId?: string;
     }) {
         return prisma.assignment.create({
             data,
@@ -36,6 +37,7 @@ export class AssignmentManager {
                         email: true,
                     },
                 },
+                rubric: true,
             },
         });
     }
@@ -44,6 +46,9 @@ export class AssignmentManager {
         // For students or general view if needed
         return prisma.assignment.findMany({
             orderBy: { createdAt: "desc" },
+            include: {
+                rubric: true,
+            },
         });
     }
 }

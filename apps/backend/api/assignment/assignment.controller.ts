@@ -45,7 +45,7 @@ export class AssignmentController {
     }
 
     private async createAssignment(req: Request, res: Response) {
-        const { title, description, maxScore, dueDate } = req.body;
+        const { title, description, maxScore, dueDate, rubricId } = req.body;
         const teacherId = req.user.id;
         const role = req.user.role;
 
@@ -55,13 +55,16 @@ export class AssignmentController {
                 .json(errorResponse("Only teachers can create assignments"));
         }
 
+        const otp = generateNumericOTP(6);
+
         const assignment = await this.assignmentManager.createAssignment({
             title,
             description,
             maxScore: maxScore ? parseInt(maxScore) : 100,
             dueDate: dueDate ? new Date(dueDate) : undefined,
-            otp: generateNumericOTP(4),
+            otp,
             teacherId,
+            rubricId,
         });
 
         return res

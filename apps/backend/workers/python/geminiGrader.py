@@ -9,12 +9,13 @@ def publish(event):
 
 # Validate args
 if len(sys.argv) < 4:
-    publish({"error": "Missing args. Usage: geminiGrader.py <extracted_data_json> <assignment_id> <submission_id>"})
+    publish({"error": "Missing args. Usage: geminiGrader.py <extracted_data_json> <assignment_id> <submission_id> [context_json]"})
     sys.exit(1)
 
 extracted_data_json = sys.argv[1]
 assignment_id = sys.argv[2]
 submission_id = sys.argv[3]
+context_json = sys.argv[4] if len(sys.argv) > 4 else "{}"
 
 # Get Gemini API key
 api_key = os.getenv("GEMINI_API_KEY")
@@ -27,6 +28,10 @@ publish({"info": f"API key length: {len(api_key)}", "step": "initialization"})
 try:
     # Parse extracted data
     extracted_data = json.loads(extracted_data_json)
+    context = json.loads(context_json)
+
+    rubric = context.get("rubric")
+    description = context.get("description", "")
 
     publish({"info": f"Parsed {len(extracted_data)} pages", "step": "data_parsed"})
 
@@ -46,20 +51,39 @@ try:
     ])
 
     # Create evaluation prompt
+    rubric_text = ""
+    if rubric:
+        rubric_text = f"""
+=== RUBRIC ===
+Name: {rubric.get('name', 'Rubric')}
+Criteria:
+{json.dumps(rubric.get('criteria', []), indent=2)}
+=== END RUBRIC ===
+"""
+
     evaluation_prompt = f"""You are an academic assignment evaluator. Please evaluate the following student submission.
 
 Assignment ID: {assignment_id}
 Submission ID: {submission_id}
 
+=== ASSIGNMENT DESCRIPTION ===
+{description}
+=== END DESCRIPTION ===
+{rubric_text}
+
 === STUDENT SUBMISSION ===
 {full_text}
 === END OF SUBMISSION ===
 
-Please evaluate this submission and provide:
-1. **Score**: A score out of 100
+Please evaluate this submission based on the provided assignment description and rubric (if available).
+If a rubric is provided, strictly follow the criteria and scoring guidelines.
+If no rubric is provided, evaluate based on general academic standards and the assignment description.
+
+Provide:
+1. **Score**: A score out of 100 (or based on rubric max score if applicable, but scaled to 100 or as requested)
 2. **Strengths**: What the student did well
 3. **Weaknesses**: Areas that need improvement
-4. **Feedback**: Detailed constructive feedback for the student
+4. **Feedback**: Detailed constructive feedback for the student, referencing specific rubric criteria where applicable.
 5. **Summary**: A brief overall summary
 
 Respond in the following JSON format:

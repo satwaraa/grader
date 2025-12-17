@@ -47,6 +47,31 @@ export interface Assignment {
     _count?: {
         submissions: number;
     };
+    rubricId?: string;
+    rubric?: Rubric;
+}
+
+export interface Rubric {
+    id: string;
+    name: string;
+    criteria: RubricCriterion[];
+    teacherId: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface RubricCriterion {
+    name: string;
+    description: string;
+    points: number;
+}
+
+export interface CreateAssignmentRequest {
+    title: string;
+    description?: string;
+    maxScore?: number;
+    dueDate?: string;
+    rubricId?: string;
 }
 
 export interface Submission {

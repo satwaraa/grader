@@ -28,6 +28,7 @@ model User {
   // Relations
   assignments Assignment[]
   submissions Submission[]
+  rubrics     Rubric[]
 
   @@map("users")
 }
@@ -46,8 +47,25 @@ model Assignment {
   teacherId   String
   teacher     User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   submissions Submission[]
+  rubricId    String?
+  rubric      Rubric?      @relation(fields: [rubricId], references: [id])
 
   @@map("assignments")
+}
+
+model Rubric {
+  id        String   @id @default(uuid())
+  name      String
+  criteria  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  teacherId String
+  teacher   User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+
+  @@map("rubrics")
 }
 
 model Submission {
