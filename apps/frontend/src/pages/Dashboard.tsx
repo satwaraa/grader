@@ -1,8 +1,16 @@
 import { Award, BarChart3, FileText, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../app/store';
 import RubricManager from '../components/RubricManager';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
 import {
     useCreateAssignmentMutation,
     useGetRecentSubmissionsQuery,
@@ -16,6 +24,7 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isRubricManagerOpen, setIsRubricManagerOpen] = useState(false);
+    const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
     const isTeacher = user?.role === 'TEACHER';
 
     // API Hooks
@@ -368,13 +377,16 @@ const Dashboard: React.FC = () => {
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Score
                                     </th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-transparent">
                                 {isSubmissionsLoading ? (
                                     <tr>
                                         <td
-                                            colSpan={isTeacher ? 5 : 4}
+                                            colSpan={isTeacher ? 6 : 5}
                                             className="px-6 py-4 text-center">
                                             Loading...
                                         </td>
@@ -382,7 +394,7 @@ const Dashboard: React.FC = () => {
                                 ) : recentSubmissions.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={isTeacher ? 5 : 4}
+                                            colSpan={isTeacher ? 6 : 5}
                                             className="px-6 py-4 text-center">
                                             No submissions found
                                         </td>
@@ -421,6 +433,13 @@ const Dashboard: React.FC = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 {item.score !== null ? `${item.score}/100` : '-'}
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button
+                                                    onClick={() => setSelectedSubmission(item)}
+                                                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                                    View Summary
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -429,6 +448,55 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            <Dialog
+                open={!!selectedSubmission}
+                onOpenChange={(open) => !open && setSelectedSubmission(null)}>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Submission Summary</DialogTitle>
+                        <DialogDescription>
+                            Detailed feedback and score for{' '}
+                            {selectedSubmission?.assignment?.title || 'Assignment'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedSubmission && (
+                        <div className="space-y-6 mt-4">
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                    Score
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                                        {selectedSubmission.score}
+                                    </span>
+                                    <span className="text-gray-400">/ 100</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                    Feedback
+                                </h4>
+                                <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg text-sm prose dark:prose-invert max-w-none">
+                                    <ReactMarkdown>
+                                        {selectedSubmission.feedback || 'No feedback available.'}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+
+                            <a
+                                href={selectedSubmission.public_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full py-3 text-center border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium">
+                                View Original PDF
+                            </a>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
