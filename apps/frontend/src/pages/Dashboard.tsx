@@ -1,5 +1,6 @@
 import { Award, BarChart3, FileText, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../app/store';
 import RubricManager from '../components/RubricManager';
 import {
@@ -12,6 +13,7 @@ import { useGetRubricsQuery } from '../features/rubrics/rubricApi';
 
 const Dashboard: React.FC = () => {
     const user = useAppSelector(selectCurrentUser);
+    const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isRubricManagerOpen, setIsRubricManagerOpen] = useState(false);
     const isTeacher = user?.role === 'TEACHER';
@@ -310,12 +312,24 @@ const Dashboard: React.FC = () => {
                                                     {item._count?.submissions || 0}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <button
-                                                        onClick={() => handleShareLink(item.id)}
-                                                        className="flex items-center gap-1 text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
-                                                        <Share2 className="h-4 w-4" />
-                                                        Share
-                                                    </button>
+                                                    <div className="flex gap-3">
+                                                        <button
+                                                            onClick={() =>
+                                                                navigate(
+                                                                    `/assignment/${item.id}/submissions`
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1 text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+                                                            <FileText className="h-4 w-4" />
+                                                            Submissions
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleShareLink(item.id)}
+                                                            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                                            <Share2 className="h-4 w-4" />
+                                                            Share
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
