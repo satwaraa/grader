@@ -5,6 +5,14 @@ import Client from "../../utils/S3client";
 export class SubmissionManager {
     async createSubmission(data: { studentId: string; assignmentId: string }) {
         try {
+            const previousSubmission = await prisma.submission.findFirst({
+                where: {
+                    assignmentId: data.assignmentId,
+                    studentId: data.studentId,
+                },
+            });
+            if (previousSubmission)
+                throw new AppError("You can only make One Submission", 403);
             if (process.env.PUBLIC_ENDPOINT) {
                 const assignmentPublicUrl = `${process.env.PUBLIC_ENDPOINT}/${data.assignmentId}/${data.studentId}`;
                 return prisma.submission.create({
@@ -87,6 +95,17 @@ export class SubmissionManager {
     }
     async presignedUrl(fileName: string, type: string, assignmentId: string, id: string) {
         try {
+            const existingSubmission = await prisma.submission.findFirst({
+                where: {
+                    assignmentId,
+                    studentId: id,
+                },
+            });
+
+            if (existingSubmission) {
+                throw new AppError("You can only make One Submission", 403);
+            }
+
             const key = `/${assignmentId}/${id}`;
             const fileRef = Client.file(key);
 
@@ -98,11 +117,13 @@ export class SubmissionManager {
 
             return { url, key };
         } catch (error) {
-            if (error instanceof Error) {
-                console.log(error.message);
+            if (error instanceof AppError) {
+                throw error;
             }
-
-            throw new Error("Can't create presignedUrl");
+            if (error instanceof Error) {
+                throw new AppError(error.message, 500);
+            }
+            throw new AppError("Can't create presignedUrl", 500);
         }
     }
 

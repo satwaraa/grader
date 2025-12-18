@@ -1,6 +1,6 @@
-import { CheckCircle, FileText, Upload } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle, FileText, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     Dialog,
     DialogContent,
@@ -19,6 +19,7 @@ import {
 
 const AssignmentUpload: React.FC = () => {
     const { assignmentId } = useParams<{ assignmentId: string }>();
+    const navigate = useNavigate();
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>();
     const [fileType, setFileType] = useState<string>();
@@ -27,6 +28,10 @@ const AssignmentUpload: React.FC = () => {
     //     key: string;
     // } | null>(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
+
+    // Error Dialog state
+    const [showErrorDialog, setShowErrorDialog] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     // OTP Dialog state
     const [showOtpDialog, setShowOtpDialog] = useState(false);
@@ -162,7 +167,16 @@ const AssignmentUpload: React.FC = () => {
             }
         } catch (err: any) {
             console.error('Verification or Upload failed', err);
-            if (err?.status === 403 || err?.data?.message === 'invalid otp') {
+            const backendMessage = err?.data?.message || err?.error;
+
+            if (backendMessage === 'You can only make One Submission') {
+                setShowOtpDialog(false);
+                setErrorMessage(backendMessage);
+                setShowErrorDialog(true);
+                return;
+            }
+
+            if (err?.status === 403 || backendMessage === 'invalid otp') {
                 setOtpError('Invalid OTP');
             } else {
                 setOtpError('Verification failed. Please try again.');
@@ -204,13 +218,27 @@ const AssignmentUpload: React.FC = () => {
                         setIsSubmitted(true);
                     } catch (err) {
                         console.error('Failed to mark submission:', err);
+                        const message =
+                            (err as any)?.data?.message ||
+                            (err as any)?.message ||
+                            'You cannot submit this assignment again.';
+                        setErrorMessage(message);
+                        setShowErrorDialog(true);
                     }
                 }
             } else {
                 console.error('Upload failed.');
+                setErrorMessage('File upload failed. Please try again.');
+                setShowErrorDialog(true);
             }
         } catch (error) {
             console.error('Error uploading file:', error);
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Unexpected error while uploading. Please try again.';
+            setErrorMessage(message);
+            setShowErrorDialog(true);
         }
     };
 
@@ -270,6 +298,16 @@ const AssignmentUpload: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    <div className="mt-8 flex justify-center">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/dashboard')}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <ArrowLeft className="h-4 w-4" />
+                            Back to Dashboard
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -429,6 +467,36 @@ const AssignmentUpload: React.FC = () => {
                                 disabled={otp.length !== 4 || isVerifyingOtp}
                                 className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors">
                                 {isVerifyingOtp ? 'Verifying...' : 'Verify & Submit'}
+                            </button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Error Dialog */}
+                <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                                <AlertCircle className="h-5 w-5" />
+                                Submission Not Allowed
+                            </DialogTitle>
+                            <DialogDescription>
+                                {errorMessage || 'You cannot submit this assignment again.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowErrorDialog(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                Close
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/dashboard')}
+                                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                <ArrowLeft className="h-4 w-4" />
+                                Back to Dashboard
                             </button>
                         </DialogFooter>
                     </DialogContent>

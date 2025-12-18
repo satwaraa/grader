@@ -49,20 +49,17 @@ export class SubmissionController {
             authMiddleware,
             catchAsync(this.getAssignmentSubmissions.bind(this)),
         );
-
-        // Get recent submissions (Teacher sees all for their assignments, Student sees theirs)
         this.router.get(
             "/recent",
             authMiddleware,
             catchAsync(this.getRecentSubmissions.bind(this)),
         );
+        this.router.post("/reEvaluate", catchAsync(this.allowRevaluate.bind(this)));
     }
 
     private async createSubmission(req: Request, res: Response) {
         try {
             const { assignmentId } = req.body;
-            console.log(assignmentId);
-
             const studentId = req.user.id;
             const role: Role = req.user.role;
 
@@ -132,11 +129,11 @@ export class SubmissionController {
                     assignmentId,
                     studentId,
                 );
-                return res.json({ url, key }).status(200);
+                return res.status(200).json({ url, key });
             }
-            return res.json({ message: "cant create signed urled" }).status(500);
+            return res.status(400).json(errorResponse("Missing file details for upload"));
         } catch (error) {
-            return res.json({ message: "cant create signed url" }).status(500);
+            return handleError(res, error);
         }
     }
     private async getRecentSubmissions(req: Request, res: Response) {
@@ -179,5 +176,11 @@ export class SubmissionController {
         } catch (error) {
             return handleError(res, error);
         }
+    }
+    public async allowResbumission(req: Request, res: Response) {}
+    public async allowRevaluate(req: Request, res: Response) {
+        try {
+            const { assignmentId, studentId } = req.body();
+        } catch (error) {}
     }
 }

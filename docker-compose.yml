@@ -4,7 +4,7 @@ services:
     container_name: postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "8601:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,7 +18,7 @@ services:
     image: redis:7-alpine
     container_name: assignment-grader-redis
     ports:
-      - "6380:6379"
+      - "8602:6379"
     volumes:
       - redis_data:/data
     restart: always
