@@ -10,10 +10,10 @@ WORKDIR /app
 FROM base AS deps
 
 # Copy only package files for caching
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock* ./
 
 # Install node/bun dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # -----------------------------
 # Build Stage (Build TypeScript)

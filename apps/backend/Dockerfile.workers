@@ -9,11 +9,11 @@ WORKDIR /app
 # -----------------------------
 FROM base AS deps
 
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock* ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
-RUN bun install --frozen-lockfile
+RUN bun install
 ENV DATABASE_URL="postgresql://dummy:5432/dummy"
 RUN bunx prisma generate
 
@@ -45,7 +45,7 @@ COPY workers/python/requirements.txt ./workers/python/
 
 # Install Python deps with build tools, then remove build tools
 # Using retries and timeout settings to handle network issues
-RUN apk add --no-cache --virtual .build-deps build-base python3-dev cargo && \
+RUN apk add --no-cache --virtual .build-deps build-base python3-dev cargo clang clang-dev clang-libs llvm && \
     pip3 install --no-cache-dir --default-timeout=100 --retries=5 \
     -r workers/python/requirements.txt --break-system-packages && \
     apk del .build-deps
