@@ -1,7 +1,7 @@
 import { Award, BarChart3, FileText, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../app/store';
 import RubricManager from '../components/RubricManager';
 import {
@@ -66,10 +66,49 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const handleShareLink = (assignmentId: string) => {
+    const handleShareLink = async (assignmentId: string) => {
         const link = `${window.location.origin}/upload/${assignmentId}`;
-        navigator.clipboard.writeText(link);
-        alert(`Link copied: ${link}`);
+        console.log('link', link);
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(link);
+                alert(`Link copied: ${link}`);
+                return;
+            }
+
+            // Fallback for older browsers: create a temporary textarea and execCommand
+            const textarea = document.createElement('textarea');
+            textarea.value = link;
+            // Prevent scrolling to bottom
+            textarea.style.position = 'fixed';
+            textarea.style.top = '0';
+            textarea.style.left = '0';
+            textarea.style.width = '1px';
+            textarea.style.height = '1px';
+            textarea.style.padding = '0';
+            textarea.style.border = 'none';
+            textarea.style.outline = 'none';
+            textarea.style.boxShadow = 'none';
+            textarea.style.background = 'transparent';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            if (successful) {
+                alert(`Link copied: ${link}`);
+            } else {
+                // As a last resort, show the link so the user can copy manually
+                // prompt is intentionally used sparingly, but works as a fallback
+                // eslint-disable-next-line no-alert
+                window.prompt('Copy this link', link);
+            }
+        } catch (err) {
+            console.error('Failed to copy link', err);
+            // Final fallback
+            // eslint-disable-next-line no-alert
+            window.prompt('Copy this link', link);
+        }
     };
 
     const activeAssignments = assignmentsData?.data || [];
