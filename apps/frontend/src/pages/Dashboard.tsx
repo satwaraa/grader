@@ -1,7 +1,7 @@
 import { Award, BarChart3, FileText, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../app/store';
 import RubricManager from '../components/RubricManager';
 import {
