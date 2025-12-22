@@ -16,7 +16,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         // Assuming backend is on port 8600 based on backend/index.ts
-        const socketInstance = io('http://localhost:8600', {
+        const socketInstance = io('http://141.148.194.201:8600', {
             withCredentials: true,
             transports: ['websocket'],
         });
