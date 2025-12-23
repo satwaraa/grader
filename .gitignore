@@ -8,7 +8,7 @@ node_modules/
 
 # Testing
 coverage/
-
+generated/
 # Production
 dist/
 build/
