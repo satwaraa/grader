@@ -60,7 +60,14 @@ const AssignmentUpload: React.FC = () => {
     useEffect(() => {
         if (!socket) return;
 
-        const handleProgress = (event: any) => {
+        const handleProgress = (event: {
+            error?: string;
+            percent?: number;
+            step?: string;
+            page?: number;
+            total_pages?: number;
+            score?: number;
+        }) => {
             console.log('Progress Event:', event);
 
             if (event.error) {
@@ -166,9 +173,10 @@ const AssignmentUpload: React.FC = () => {
                 // 3. Upload
                 await performUpload(urlData);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const apiError = err as { data?: { message?: string }; error?: string; status?: number };
             console.error('Verification or Upload failed', err);
-            const backendMessage = err?.data?.message || err?.error;
+            const backendMessage = apiError?.data?.message || apiError?.error;
 
             if (backendMessage === 'You can only make One Submission') {
                 setShowOtpDialog(false);
@@ -177,7 +185,7 @@ const AssignmentUpload: React.FC = () => {
                 return;
             }
 
-            if (err?.status === 403 || backendMessage === 'invalid otp') {
+            if (apiError?.status === 403 || backendMessage === 'invalid otp') {
                 setOtpError('Invalid OTP');
             } else {
                 setOtpError('Verification failed. Please try again.');
@@ -220,8 +228,8 @@ const AssignmentUpload: React.FC = () => {
                     } catch (err) {
                         console.error('Failed to mark submission:', err);
                         const message =
-                            (err as any)?.data?.message ||
-                            (err as any)?.message ||
+                            (err as { data?: { message?: string }; message?: string })?.data?.message ||
+                            (err as { message?: string })?.message ||
                             'You cannot submit this assignment again.';
                         setErrorMessage(message);
                         setShowErrorDialog(true);
@@ -349,7 +357,7 @@ const AssignmentUpload: React.FC = () => {
                                 </h3>
                                 <div className="space-y-3">
                                     {assignment.rubric.criteria.map(
-                                        (criterion: any, index: number) => (
+                                        (criterion: { name: string; description: string; points: number }, index: number) => (
                                             <div
                                                 key={index}
                                                 className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">

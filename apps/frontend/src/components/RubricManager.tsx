@@ -56,7 +56,7 @@ const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         }
     };
 
-    const handleEdit = (rubric: any) => {
+    const handleEdit = (rubric: { id: string; name: string; criteria: RubricCriterion[] }) => {
         setEditingId(rubric.id);
         setName(rubric.name);
         setCriteria(rubric.criteria);

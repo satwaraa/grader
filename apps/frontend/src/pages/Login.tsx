@@ -24,10 +24,11 @@ const Login: React.FC = () => {
         })
       );
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiError = err as { data?: { message?: string } };
       console.error("Login error:", err);
       alert(
-        err?.data?.message || "Login failed! Please check your credentials."
+        apiError?.data?.message || "Login failed! Please check your credentials."
       );
     }
   };

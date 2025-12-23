@@ -21,13 +21,14 @@ import {
 } from '../features/assignments/assignmentApi';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import { useGetRubricsQuery } from '../features/rubrics/rubricApi';
+import type { Submission } from '../types';
 
 const Dashboard: React.FC = () => {
     const user = useAppSelector(selectCurrentUser);
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isRubricManagerOpen, setIsRubricManagerOpen] = useState(false);
-    const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
     const isTeacher = user?.role === 'TEACHER';
 
     // API Hooks
@@ -104,14 +105,11 @@ const Dashboard: React.FC = () => {
                 alert(`Link copied: ${link}`);
             } else {
                 // As a last resort, show the link so the user can copy manually
-                // prompt is intentionally used sparingly, but works as a fallback
-                // eslint-disable-next-line no-alert
                 window.prompt('Copy this link', link);
             }
         } catch (err) {
             console.error('Failed to copy link', err);
             // Final fallback
-            // eslint-disable-next-line no-alert
             window.prompt('Copy this link', link);
         }
     };
@@ -120,7 +118,7 @@ const Dashboard: React.FC = () => {
         try {
             await reEvaluateSubmission({ submissionId }).unwrap();
             alert('Submission queued for re-evaluation');
-        } catch (error) {
+        } catch  {
             alert('Failed to trigger re-evaluation');
         }
     };
@@ -133,7 +131,7 @@ const Dashboard: React.FC = () => {
             await allowResubmission({ submissionId }).unwrap();
             alert('Submission deleted. Student can now resubmit.');
             setSelectedSubmission(null);
-        } catch (error) {
+        } catch  {
             alert('Failed to allow resubmission');
         }
     };

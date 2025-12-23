@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQueryWithReauth } from '../../app/baseQuery';
-import type { Rubric } from '../../types';
+import type { Rubric, RubricCriterion } from '../../types';
 
 export const rubricApi = createApi({
     reducerPath: 'rubricApi',
@@ -17,7 +17,7 @@ export const rubricApi = createApi({
         }),
         createRubric: builder.mutation<
             { success: boolean; data: Rubric },
-            { name: string; criteria: any[] }
+            { name: string; criteria: RubricCriterion[] }
         >({
             query: (data) => ({
                 url: '/rubrics',
@@ -28,7 +28,7 @@ export const rubricApi = createApi({
         }),
         updateRubric: builder.mutation<
             { success: boolean; data: Rubric },
-            { id: string; name: string; criteria: any[] }
+            { id: string; name: string; criteria: RubricCriterion[] }
         >({
             query: ({ id, ...data }) => ({
                 url: `/rubrics/${id}`,

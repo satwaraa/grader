@@ -16,10 +16,11 @@ import {
     useGetAssignmentSubmissionsQuery,
     useReEvaluateSubmissionMutation,
 } from '../features/assignments/assignmentApi';
+import type { Submission } from '../types';
 
 const AssignmentSubmissions: React.FC = () => {
     const { assignmentId } = useParams<{ assignmentId: string }>();
-    const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
     const { data: assignmentData } = useGetAssignmentQuery(assignmentId || '', {
         skip: !assignmentId,
@@ -41,7 +42,7 @@ const AssignmentSubmissions: React.FC = () => {
         try {
             await reEvaluateSubmission({ submissionId }).unwrap();
             alert('Submission queued for re-evaluation');
-        } catch (error) {
+        } catch {
             alert('Failed to trigger re-evaluation');
         }
     };
@@ -54,7 +55,7 @@ const AssignmentSubmissions: React.FC = () => {
             await allowResubmission({ submissionId }).unwrap();
             alert('Submission deleted. Student can now resubmit.');
             setSelectedSubmission(null);
-        } catch (error) {
+        } catch {
             alert('Failed to allow resubmission');
         }
     };

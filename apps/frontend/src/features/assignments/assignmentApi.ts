@@ -67,7 +67,7 @@ export const assignmentApi = createApi({
                 type,
                 assignmentId,
             }: {
-                fileName: String;
+                fileName: string;
                 type: string;
                 assignmentId: string;
             }) => ({
@@ -80,21 +80,21 @@ export const assignmentApi = createApi({
                 },
             }),
         }),
-        submitAssignment: builder.mutation<any, { assignmentId: string; otp: string }>({
+        submitAssignment: builder.mutation<{ success: boolean; data: Submission }, { assignmentId: string; otp: string }>({
             query: (body) => ({
                 url: '/submissions/',
                 method: 'POST',
                 body: body,
             }),
         }),
-        verifyOtp: builder.mutation<any, { assignmentId: string; otp: string }>({
+        verifyOtp: builder.mutation<{ success: boolean }, { assignmentId: string; otp: string }>({
             query: (body) => ({
                 url: '/submissions/verifyAssignmentOtp',
                 method: 'POST',
                 body: body,
             }),
         }),
-        reEvaluateSubmission: builder.mutation<any, { submissionId: string }>({
+        reEvaluateSubmission: builder.mutation<{ success: boolean }, { submissionId: string }>({
             query: (body) => ({
                 url: '/submissions/reEvaluate',
                 method: 'POST',
@@ -102,7 +102,7 @@ export const assignmentApi = createApi({
             }),
             invalidatesTags: ['Submission'],
         }),
-        allowResubmission: builder.mutation<any, { submissionId: string }>({
+        allowResubmission: builder.mutation<{ success: boolean }, { submissionId: string }>({
             query: (body) => ({
                 url: '/submissions/allowResubmission',
                 method: 'POST',

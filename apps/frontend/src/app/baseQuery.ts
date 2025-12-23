@@ -53,7 +53,9 @@ export const baseQueryWithReauth: BaseQueryFn<
                     );
 
                     if (refreshResult.data) {
-                        const data = refreshResult.data as any;
+                        const data = refreshResult.data as {
+                            data?: { accessToken?: string; refreshToken?: string };
+                        };
                         const { accessToken, refreshToken: newRefreshToken } = data.data || {};
 
                         if (accessToken) {
@@ -77,7 +79,7 @@ export const baseQueryWithReauth: BaseQueryFn<
                         api.dispatch(logout());
                         return false;
                     }
-                } catch (e) {
+                } catch {
                     api.dispatch(logout());
                     return false;
                 } finally {

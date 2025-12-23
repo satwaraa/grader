@@ -26,9 +26,10 @@ const Signup: React.FC = () => {
         })
       );
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiError = err as { data?: { message?: string } };
       console.error("Signup error:", err);
-      alert(err?.data?.message || "Signup failed! Please try again.");
+      alert(apiError?.data?.message || "Signup failed! Please try again.");
     }
   };
 
