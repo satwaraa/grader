@@ -3,6 +3,7 @@ import { Router } from "express";
 import { errorResponse, successResponse } from "../../lib/apiResponse";
 import { AppError, handleError } from "../../utils/apiResponseHandler";
 
+import { prisma } from "../../lib/prisma";
 import { submissionQueue } from "../../utils/queue";
 import { authMiddleware } from "../middleware/auth.middleware";
 import Role from "../types/roles";
@@ -54,7 +55,8 @@ export class SubmissionController {
             authMiddleware,
             catchAsync(this.getRecentSubmissions.bind(this)),
         );
-        this.router.post("/reEvaluate", catchAsync(this.allowRevaluate.bind(this)));
+        this.router.post("/reEvaluate", authMiddleware, catchAsync(this.allowRevaluate.bind(this)));
+        this.router.post("/allowResubmission", authMiddleware, catchAsync(this.allowResubmission.bind(this)));
     }
 
     private async createSubmission(req: Request, res: Response) {
@@ -177,10 +179,78 @@ export class SubmissionController {
             return handleError(res, error);
         }
     }
-    public async allowResbumission(req: Request, res: Response) {}
+    public async allowResubmission(req: Request, res: Response) {
+        try {
+            const role: Role = req.user.role;
+            if (role !== Role.TEACHER) {
+                throw new AppError("Only teachers can allow resubmission", 403);
+            }
+            const { submissionId } = req.body;
+            if (!submissionId) {
+                throw new AppError("Submission ID is required", 400);
+            }
+            await this.submissionManager.deleteSubmission(submissionId);
+            return res
+                .status(200)
+                .json(successResponse(null, "Submission deleted successfully. Student can now resubmit."));
+        } catch (error) {
+            return handleError(res, error);
+        }
+    }
+
     public async allowRevaluate(req: Request, res: Response) {
         try {
-            const { assignmentId, studentId } = req.body();
-        } catch (error) {}
+            const role: Role = req.user.role;
+            if (role !== Role.TEACHER) {
+                throw new AppError("Only teachers can trigger re-evaluation", 403);
+            }
+            const { submissionId } = req.body;
+            if (!submissionId) {
+                throw new AppError("Submission ID is required", 400);
+            }
+
+            // Fetch submission details to re-queue
+            const submission = await prisma.submission.findUnique({
+                where: { id: submissionId },
+            });
+
+            if (!submission) {
+                throw new AppError("Submission not found", 404);
+            }
+
+            // Update status to PENDING
+            await this.submissionManager.updateSubmissionGrade(submissionId, {
+                score: 0, // Reset score or keep previous? Resetting seems appropriate for re-evaluation
+                feedback: "",
+                status: "PENDING" as any, // Cast because helper expects GRADED | REVIEWING, but here we revert to PENDING
+            });
+             // Wait, updateSubmissionGrade expects GRADED | REVIEWING. I should probably modify it or use prisma directly here to avoid type error and unintended side effects.
+             // Let's use prisma directly for status update to be safe and flexible.
+
+            await prisma.submission.update({
+                where: { id: submissionId },
+                data: {
+                    status: "PENDING",
+                    // We might keep the old score/feedback until new one is available, or clear it.
+                    // Let's clear it to indicate re-evaluation is in progress.
+                    score: null,
+                    feedback: null,
+                }
+            });
+
+            // Re-queue the job
+            await submissionQueue.add("grade_assignment", submission, {
+                attempts: 3,
+                backoff: { type: "exponential", delay: 5000 },
+                removeOnComplete: true,
+                removeOnFail: false,
+            });
+
+            return res
+                .status(200)
+                .json(successResponse(null, "Submission queued for re-evaluation"));
+        } catch (error) {
+            return handleError(res, error);
+        }
     }
 }

@@ -10,8 +10,10 @@ import {
     DialogTitle,
 } from '../components/ui/dialog';
 import {
+    useAllowResubmissionMutation,
     useGetAssignmentQuery,
     useGetAssignmentSubmissionsQuery,
+    useReEvaluateSubmissionMutation,
 } from '../features/assignments/assignmentApi';
 
 const AssignmentSubmissions: React.FC = () => {
@@ -30,6 +32,31 @@ const AssignmentSubmissions: React.FC = () => {
 
     const assignment = assignmentData?.data;
     const submissions = submissionsData?.data || [];
+
+    const [reEvaluateSubmission] = useReEvaluateSubmissionMutation();
+    const [allowResubmission] = useAllowResubmissionMutation();
+
+    const handleReEvaluate = async (submissionId: string) => {
+        try {
+            await reEvaluateSubmission({ submissionId }).unwrap();
+            alert('Submission queued for re-evaluation');
+        } catch (error) {
+            alert('Failed to trigger re-evaluation');
+        }
+    };
+
+    const handleAllowResubmission = async (submissionId: string) => {
+        if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
+            return;
+        }
+        try {
+            await allowResubmission({ submissionId }).unwrap();
+            alert('Submission deleted. Student can now resubmit.');
+            setSelectedSubmission(null);
+        } catch (error) {
+            alert('Failed to allow resubmission');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8">
@@ -128,6 +155,24 @@ const AssignmentSubmissions: React.FC = () => {
                                         {selectedSubmission.score}
                                     </span>
                                     <span className="text-gray-400">/ 100</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                    Actions
+                                </h4>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => handleReEvaluate(selectedSubmission.id)}
+                                        className="px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors border border-yellow-200">
+                                        Re-evaluate (AI)
+                                    </button>
+                                    <button
+                                        onClick={() => handleAllowResubmission(selectedSubmission.id)}
+                                        className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg text-sm font-medium transition-colors border border-red-200">
+                                        Delete & Allow Resubmission
+                                    </button>
                                 </div>
                             </div>
 

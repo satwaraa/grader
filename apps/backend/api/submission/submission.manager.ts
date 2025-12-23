@@ -167,4 +167,17 @@ export class SubmissionManager {
             }
         }
     }
+
+    async deleteSubmission(submissionId: string) {
+        try {
+            await prisma.submission.delete({
+                where: { id: submissionId },
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new AppError(error.message, 500);
+            }
+            throw new AppError("Failed to delete submission", 500);
+        }
+    }
 }

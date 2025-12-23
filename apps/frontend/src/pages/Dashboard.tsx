@@ -12,9 +12,11 @@ import {
     DialogTitle,
 } from '../components/ui/dialog';
 import {
+    useAllowResubmissionMutation,
     useCreateAssignmentMutation,
     useGetRecentSubmissionsQuery,
     useGetTeacherAssignmentsQuery,
+    useReEvaluateSubmissionMutation,
 } from '../features/assignments/assignmentApi';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import { useGetRubricsQuery } from '../features/rubrics/rubricApi';
@@ -36,6 +38,8 @@ const Dashboard: React.FC = () => {
         useGetRecentSubmissionsQuery();
     const { data: rubricsData } = useGetRubricsQuery(undefined, { skip: !isTeacher });
     const [createAssignment, { isLoading: isCreating }] = useCreateAssignmentMutation();
+    const [reEvaluateSubmission] = useReEvaluateSubmissionMutation();
+    const [allowResubmission] = useAllowResubmissionMutation();
 
     // Form State
     const [title, setTitle] = useState('');
@@ -108,6 +112,28 @@ const Dashboard: React.FC = () => {
             // Final fallback
             // eslint-disable-next-line no-alert
             window.prompt('Copy this link', link);
+        }
+    };
+
+    const handleReEvaluate = async (submissionId: string) => {
+        try {
+            await reEvaluateSubmission({ submissionId }).unwrap();
+            alert('Submission queued for re-evaluation');
+        } catch (error) {
+            alert('Failed to trigger re-evaluation');
+        }
+    };
+
+    const handleAllowResubmission = async (submissionId: string) => {
+        if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
+            return;
+        }
+        try {
+            await allowResubmission({ submissionId }).unwrap();
+            alert('Submission deleted. Student can now resubmit.');
+            setSelectedSubmission(null);
+        } catch (error) {
+            alert('Failed to allow resubmission');
         }
     };
 
@@ -473,11 +499,29 @@ const Dashboard: React.FC = () => {
                                                 {item.score !== null ? `${item.score}/100` : '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <button
-                                                    onClick={() => setSelectedSubmission(item)}
-                                                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
-                                                    View Summary
-                                                </button>
+                                                <div className="flex gap-3 items-center">
+                                                    <button
+                                                        onClick={() => setSelectedSubmission(item)}
+                                                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                                        View Summary
+                                                    </button>
+                                                    {isTeacher && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleReEvaluate(item.id)}
+                                                                className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
+                                                                title="Re-evaluate">
+                                                                Re-evaluate
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleAllowResubmission(item.id)}
+                                                                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                                                title="Delete & Allow Resubmission">
+                                                                Delete
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -513,6 +557,26 @@ const Dashboard: React.FC = () => {
                                     <span className="text-gray-400">/ 100</span>
                                 </div>
                             </div>
+
+                            {isTeacher && (
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                        Actions
+                                    </h4>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => handleReEvaluate(selectedSubmission.id)}
+                                            className="px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors border border-yellow-200">
+                                            Re-evaluate (AI)
+                                        </button>
+                                        <button
+                                            onClick={() => handleAllowResubmission(selectedSubmission.id)}
+                                            className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg text-sm font-medium transition-colors border border-red-200">
+                                            Delete & Allow Resubmission
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             <div>
                                 <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">

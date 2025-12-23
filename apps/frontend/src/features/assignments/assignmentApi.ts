@@ -94,6 +94,22 @@ export const assignmentApi = createApi({
                 body: body,
             }),
         }),
+        reEvaluateSubmission: builder.mutation<any, { submissionId: string }>({
+            query: (body) => ({
+                url: '/submissions/reEvaluate',
+                method: 'POST',
+                body: body,
+            }),
+            invalidatesTags: ['Submission'],
+        }),
+        allowResubmission: builder.mutation<any, { submissionId: string }>({
+            query: (body) => ({
+                url: '/submissions/allowResubmission',
+                method: 'POST',
+                body: body,
+            }),
+            invalidatesTags: ['Submission'],
+        }),
     }),
 });
 
@@ -109,4 +125,6 @@ export const {
     useLazyGetUploadUrlQuery,
     useSubmitAssignmentMutation,
     useVerifyOtpMutation,
+    useReEvaluateSubmissionMutation,
+    useAllowResubmissionMutation,
 } = assignmentApi;
