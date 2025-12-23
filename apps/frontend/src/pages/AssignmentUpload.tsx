@@ -1,6 +1,7 @@
 import { AlertCircle, ArrowLeft, CheckCircle, FileText, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import MeshBackground from '../components/MeshBackground';
 import {
     Dialog,
     DialogContent,
@@ -262,7 +263,8 @@ const AssignmentUpload: React.FC = () => {
 
     if (isSubmitted) {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-[#030712] flex items-center justify-center px-4">
+            <div className="min-h-screen bg-gray-50 dark:bg-[#030712] flex items-center justify-center px-4 relative overflow-hidden">
+                <MeshBackground />
                 <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl text-center max-w-md w-full border border-gray-200 dark:border-gray-800">
                     <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -314,7 +316,8 @@ const AssignmentUpload: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden">
+            <MeshBackground />
             <div className="max-w-3xl mx-auto">
                 <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
                     <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">

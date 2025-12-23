@@ -2,6 +2,7 @@ import { User } from 'lucide-react';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useParams } from 'react-router-dom';
+import MeshBackground from '../components/MeshBackground';
 import {
     Dialog,
     DialogContent,
@@ -59,7 +60,8 @@ const AssignmentSubmissions: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 relative overflow-hidden">
+            <MeshBackground />
             <div className="max-w-7xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold mb-2">
@@ -124,6 +126,18 @@ const AssignmentSubmissions: React.FC = () => {
                                             onClick={() => setSelectedSubmission(submission)}
                                             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
                                             View Summary
+                                        </button>
+                                        <button
+                                            onClick={() => handleReEvaluate(submission.id)}
+                                            className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium transition-colors"
+                                            title="Re-evaluate">
+                                            Re-evaluate
+                                        </button>
+                                        <button
+                                            onClick={() => handleAllowResubmission(submission.id)}
+                                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                                            title="Delete & Allow Resubmission">
+                                            Delete
                                         </button>
                                     </div>
                                 </div>

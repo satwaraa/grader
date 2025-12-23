@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../app/store';
+import MeshBackground from '../components/MeshBackground';
 import RubricManager from '../components/RubricManager';
 import {
     Dialog,
@@ -156,7 +157,9 @@ const Dashboard: React.FC = () => {
             : 0;
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 transition-colors duration-300 relative">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 transition-colors duration-300 relative overflow-hidden">
+            {/* Mesh Background */}
+            <MeshBackground />
             {/* Rubric Manager Modal */}
             {isRubricManagerOpen && <RubricManager onClose={() => setIsRubricManagerOpen(false)} />}
 
@@ -276,7 +279,7 @@ const Dashboard: React.FC = () => {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-indigo-900/40 dark:to-indigo-900/10 border border-gray-200 dark:border-indigo-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="bg-white dark:bg-gray-900/60 dark:backdrop-blur-sm border border-gray-200 dark:border-indigo-500/30 p-6 rounded-2xl shadow-sm dark:shadow-[0_0_30px_-10px_rgba(99,102,241,0.3)]">
                         <div className="flex items-center gap-4 mb-2">
                             <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg">
                                 <FolderClock className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
@@ -289,7 +292,7 @@ const Dashboard: React.FC = () => {
                             {pendingCount}
                         </p>
                     </div>
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-emerald-900/40 dark:to-emerald-900/10 border border-gray-200 dark:border-emerald-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="bg-white dark:bg-gray-900/60 dark:backdrop-blur-sm border border-gray-200 dark:border-emerald-500/30 p-6 rounded-2xl shadow-sm dark:shadow-[0_0_30px_-10px_rgba(16,185,129,0.3)]">
                         <div className="flex items-center gap-4 mb-2">
                             <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
                                 <Award className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
@@ -302,7 +305,7 @@ const Dashboard: React.FC = () => {
                             {gradedCount}
                         </p>
                     </div>
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-purple-900/40 dark:to-purple-900/10 border border-gray-200 dark:border-purple-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="bg-white dark:bg-gray-900/60 dark:backdrop-blur-sm border border-gray-200 dark:border-purple-500/30 p-6 rounded-2xl shadow-sm dark:shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]">
                         <div className="flex items-center gap-4 mb-2">
                             <div className="p-2 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
                                 <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
