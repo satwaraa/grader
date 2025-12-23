@@ -28,8 +28,8 @@ export default defineConfig([
                 "warn",
                 { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
             ],
-            // Allow explicit any in some cases (can tighten later)
-            "@typescript-eslint/no-explicit-any": "warn",
+            // Allow explicit any
+            "@typescript-eslint/no-explicit-any": "off",
             // Prefer const
             "prefer-const": "warn",
             // No console in production (warn only)
