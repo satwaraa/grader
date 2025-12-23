@@ -36,13 +36,13 @@ export class SubmissionController {
             "/uploadUrl",
             authMiddleware,
             catchAsync(this.getUploadUrl.bind(this)),
-        ),
-            // Get my submissions (Student)
-            this.router.get(
-                "/my-submissions",
-                authMiddleware,
-                catchAsync(this.getMySubmissions.bind(this)),
-            );
+        );
+        // Get my submissions (Student)
+        this.router.get(
+            "/my-submissions",
+            authMiddleware,
+            catchAsync(this.getMySubmissions.bind(this)),
+        );
 
         // Get submissions for an assignment (Teacher)
         this.router.get(
@@ -55,8 +55,16 @@ export class SubmissionController {
             authMiddleware,
             catchAsync(this.getRecentSubmissions.bind(this)),
         );
-        this.router.post("/reEvaluate", authMiddleware, catchAsync(this.allowRevaluate.bind(this)));
-        this.router.post("/allowResubmission", authMiddleware, catchAsync(this.allowResubmission.bind(this)));
+        this.router.post(
+            "/reEvaluate",
+            authMiddleware,
+            catchAsync(this.allowRevaluate.bind(this)),
+        );
+        this.router.post(
+            "/allowResubmission",
+            authMiddleware,
+            catchAsync(this.allowResubmission.bind(this)),
+        );
     }
 
     private async createSubmission(req: Request, res: Response) {
@@ -89,7 +97,6 @@ export class SubmissionController {
     }
 
     private async getMySubmissions(req: Request, res: Response) {
-        // @ts-ignore
         const studentId = req.user.id;
         const submissions = await this.submissionManager.getSubmissionsByStudent(
             studentId,
@@ -192,7 +199,12 @@ export class SubmissionController {
             await this.submissionManager.deleteSubmission(submissionId);
             return res
                 .status(200)
-                .json(successResponse(null, "Submission deleted successfully. Student can now resubmit."));
+                .json(
+                    successResponse(
+                        null,
+                        "Submission deleted successfully. Student can now resubmit.",
+                    ),
+                );
         } catch (error) {
             return handleError(res, error);
         }
@@ -222,10 +234,10 @@ export class SubmissionController {
             await this.submissionManager.updateSubmissionGrade(submissionId, {
                 score: 0, // Reset score or keep previous? Resetting seems appropriate for re-evaluation
                 feedback: "",
-                status: "PENDING" as any, // Cast because helper expects GRADED | REVIEWING, but here we revert to PENDING
+                status: "PENDING", // Cast because helper expects GRADED | REVIEWING, but here we revert to PENDING
             });
-             // Wait, updateSubmissionGrade expects GRADED | REVIEWING. I should probably modify it or use prisma directly here to avoid type error and unintended side effects.
-             // Let's use prisma directly for status update to be safe and flexible.
+            // Wait, updateSubmissionGrade expects GRADED | REVIEWING. I should probably modify it or use prisma directly here to avoid type error and unintended side effects.
+            // Let's use prisma directly for status update to be safe and flexible.
 
             await prisma.submission.update({
                 where: { id: submissionId },
@@ -235,7 +247,7 @@ export class SubmissionController {
                     // Let's clear it to indicate re-evaluation is in progress.
                     score: null,
                     feedback: null,
-                }
+                },
             });
 
             // Re-queue the job

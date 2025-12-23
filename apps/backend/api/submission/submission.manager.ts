@@ -132,7 +132,7 @@ export class SubmissionManager {
         data: {
             score: number;
             feedback: string;
-            status: "GRADED" | "REVIEWING";
+            status: "GRADED" | "REVIEWING" | "PENDING";
         },
     ) {
         try {

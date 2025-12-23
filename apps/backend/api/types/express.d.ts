@@ -6,6 +6,7 @@ declare module "express-serve-static-core" {
         user: {
             id: string;
             role: Role;
+            email?: string;
         };
     }
 }

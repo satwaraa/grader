@@ -16,8 +16,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Assuming backend is on port 8600 based on backend/index.ts
-        const socketInstance = io('https://api.satwaraa.dev', {
+        // Use VITE_WS_URL or VITE_API_URL, fallback to localhost in development
+        const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:8600';
+        const socketInstance = io(wsUrl, {
             withCredentials: true,
             transports: ['websocket'],
         });

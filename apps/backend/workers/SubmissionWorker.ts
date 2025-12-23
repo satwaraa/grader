@@ -68,7 +68,7 @@ function runPython(submissionId: string, filePath: string): Promise<ParsedPage[]
                 }
 
                 redis.publish(`submission:${submissionId}`, JSON.stringify(msg));
-            } catch (err) {
+            } catch {
                 console.log(`⚠️  Non-JSON output (ignored): ${output}`);
             }
         });
@@ -95,7 +95,10 @@ function runGeminiGrader(
     extractedData: ParsedPage[],
     assignmentId: string,
     submissionId: string,
-    context: { rubric?: any; description?: string } = {},
+    context: {
+        rubric?: { name: string; points: number; description: string }[];
+        description?: string;
+    } = {},
 ): Promise<GeminiEvaluation> {
     return new Promise<GeminiEvaluation>((resolve, reject) => {
         const script = path.join(__dirname, "python", "geminiGrader.py");
@@ -138,7 +141,7 @@ function runGeminiGrader(
                 }
 
                 redis.publish(`submission:${submissionId}`, JSON.stringify(msg));
-            } catch (err) {
+            } catch {
                 console.log(`⚠️  Non-JSON output (ignored): ${output}`);
             }
         });
@@ -239,8 +242,21 @@ const worker = new Worker<SubmissionJobData>(
                 throw new Error(`Assignment not found: ${assignmentId}`);
             }
 
+            // Transform rubric to the expected array format if present
+            let formattedRubric:
+                | { name: string; points: number; description: string }[]
+                | undefined = undefined;
+            if (assignment.rubric && Array.isArray(assignment.rubric.criteria)) {
+                /* eslint-disable @typescript-eslint/no-explicit-any */
+                formattedRubric = assignment.rubric.criteria.map((c: any) => ({
+                    name: c.name,
+                    points: c.points,
+                    description: c.description,
+                }));
+            }
+
             const context = {
-                rubric: assignment.rubric || undefined,
+                rubric: formattedRubric,
                 description: assignment.description || undefined,
             };
 

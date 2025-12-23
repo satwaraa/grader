@@ -51,7 +51,7 @@ const exitHandler = () => {
     }, 5000);
 };
 
-const unexpectedErrorHandler = (error: any) => {
+const unexpectedErrorHandler = (error: Error) => {
     console.error(error);
     exitHandler();
 };

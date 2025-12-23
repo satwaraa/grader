@@ -40,7 +40,7 @@ export const initializeSocketIO = (httpServer: HTTPServer) => {
                 const event = JSON.parse(message);
                 io.to(submissionId).emit("submission-progress", event);
                 // console.log(`Forwarded event to room ${submissionId}:`, event.step);
-            } catch (e) {
+            } catch {
                 console.error("Failed to parse message:", message);
             }
         }

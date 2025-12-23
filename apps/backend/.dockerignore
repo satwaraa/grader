@@ -9,7 +9,7 @@ README.md
 .env.local
 .vscode
 .idea
-*.md
 .DS_Store
 uploads
 generated
+*.md

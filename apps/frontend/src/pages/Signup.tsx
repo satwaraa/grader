@@ -16,8 +16,12 @@ const Signup: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submitted - starting signup process");
+    console.log("Data:", { email, password, name, role });
     try {
+      console.log("Calling signup mutation...");
       const response = await signup({ email, password, name, role }).unwrap();
+      console.log("Signup response:", response);
       dispatch(
         setCredentials({
           user: response.data.user,
