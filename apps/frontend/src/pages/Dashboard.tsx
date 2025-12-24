@@ -1,5 +1,5 @@
 import { Award, BarChart3, FileText, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../app/store';
@@ -12,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '../components/ui/dialog';
+import { useSocket } from '../context/SocketContext';
 import {
     useAllowResubmissionMutation,
     useCreateAssignmentMutation,
@@ -30,14 +31,33 @@ const Dashboard: React.FC = () => {
     const [isRubricManagerOpen, setIsRubricManagerOpen] = useState(false);
     const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
     const isTeacher = user?.role === 'TEACHER';
+    const { socket } = useSocket();
+
+    // Track grading progress for each submission
+    const [gradingProgress, setGradingProgress] = useState<
+        Record<
+            string,
+            {
+                step: string;
+                percent: number;
+                status: 'processing' | 'completed' | 'failed';
+            }
+        >
+    >({});
 
     // API Hooks
-    const { data: assignmentsData, isLoading: isAssignmentsLoading } =
-        useGetTeacherAssignmentsQuery(undefined, {
-            skip: !isTeacher,
-        });
-    const { data: submissionsData, isLoading: isSubmissionsLoading } =
-        useGetRecentSubmissionsQuery();
+    const {
+        data: assignmentsData,
+        isLoading: isAssignmentsLoading,
+        refetch: refetchAssignments,
+    } = useGetTeacherAssignmentsQuery(undefined, {
+        skip: !isTeacher,
+    });
+    const {
+        data: submissionsData,
+        isLoading: isSubmissionsLoading,
+        refetch: refetchSubmissions,
+    } = useGetRecentSubmissionsQuery();
     const { data: rubricsData } = useGetRubricsQuery(undefined, { skip: !isTeacher });
     const [createAssignment, { isLoading: isCreating }] = useCreateAssignmentMutation();
     const [reEvaluateSubmission] = useReEvaluateSubmissionMutation();
@@ -49,6 +69,97 @@ const Dashboard: React.FC = () => {
     const [dueDate, setDueDate] = useState('');
     const [maxScore, setMaxScore] = useState('100');
     const [selectedRubricId, setSelectedRubricId] = useState<string>('');
+
+    const activeAssignments = useMemo(
+        () => assignmentsData?.data || [],
+        [assignmentsData?.data],
+    );
+
+    // Socket listener for grading progress (teachers only)
+    useEffect(() => {
+        if (!socket || !isTeacher) return;
+
+        const handleGradingProgress = (event: {
+            submissionId: string;
+            step?: string;
+            percent?: number;
+            error?: string;
+            score?: number;
+        }) => {
+            console.log('📡 Grading progress:', event);
+
+            // Map step to user-friendly display status
+            let displayStatus: 'pending' | 'downloading' | 'grading' | 'graded' | 'failed' = 'pending';
+            if (event.error) {
+                displayStatus = 'failed';
+            } else if (event.step === 'grading_completed') {
+                displayStatus = 'graded';
+                // Refetch to get updated data from server
+                refetchSubmissions();
+                refetchAssignments();
+            } else if (
+                event.step === 'downloading_pdf' ||
+                event.step === 'pdf_downloaded' ||
+                event.step === 'submission_started'
+            ) {
+                displayStatus = 'downloading';
+            } else if (
+                event.step === 'parsing_started' ||
+                event.step === 'page_parsed' ||
+                event.step === 'parsing_completed' ||
+                event.step === 'gemini_started' ||
+                event.step === 'gemini_processing' ||
+                event.step === 'gemini_completed'
+            ) {
+                displayStatus = 'grading';
+            }
+
+            setGradingProgress((prev) => ({
+                ...prev,
+                [event.submissionId]: {
+                    step: displayStatus,
+                    percent: event.percent || 0,
+                    status: event.error
+                        ? 'failed'
+                        : event.step === 'grading_completed'
+                          ? 'completed'
+                          : 'processing',
+                },
+            }));
+        };
+
+        socket.on('assignment-grading-progress', handleGradingProgress);
+
+        // Listen for new submissions to auto-refresh
+        const handleNewSubmission = (event: { assignmentId: string }) => {
+            console.log('📡 New submission received:', event);
+            // Refetch both assignments (for count) and submissions
+            refetchAssignments();
+            refetchSubmissions();
+        };
+
+        socket.on('new-submission', handleNewSubmission);
+
+        return () => {
+            socket.off('assignment-grading-progress', handleGradingProgress);
+            socket.off('new-submission', handleNewSubmission);
+        };
+    }, [socket, isTeacher, refetchAssignments, refetchSubmissions]);
+
+    // Watch all active assignments for grading updates (teachers only)
+    useEffect(() => {
+        if (!socket || !isTeacher || !activeAssignments.length) return;
+
+        activeAssignments.forEach((assignment) => {
+            socket.emit('watch-assignment', assignment.id);
+        });
+
+        return () => {
+            activeAssignments.forEach((assignment) => {
+                socket.emit('unwatch-assignment', assignment.id);
+            });
+        };
+    }, [socket, isTeacher, activeAssignments]);
 
     const handleCreateAssignment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -136,7 +247,6 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const activeAssignments = assignmentsData?.data || [];
     const recentSubmissions = submissionsData?.data || [];
 
     // Calculate stats
@@ -484,17 +594,28 @@ const Dashboard: React.FC = () => {
                                                 {new Date(item.submittedAt).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span
-                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                              ${
-                                  item.status === 'GRADED'
-                                      ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
-                                      : item.status === 'PENDING'
-                                      ? 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/20'
-                                      : 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20'
-                              }`}>
-                                                    {item.status}
-                                                </span>
+                                                {gradingProgress[item.id]?.status === 'processing' ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                                        <span className="text-sm text-indigo-600 dark:text-indigo-400 capitalize">
+                                                            {gradingProgress[item.id].step || 'Processing'}
+                                                        </span>
+                                                    </div>
+                                                ) : gradingProgress[item.id]?.status === 'failed' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/20">
+                                                        Failed
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                                  ${
+                                      item.status === 'GRADED'
+                                          ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+                                          : 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/20'
+                                  }`}>
+                                                        {item.status === 'GRADED' ? 'Graded' : 'Pending'}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 {item.score !== null ? `${item.score}/100` : '-'}

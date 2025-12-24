@@ -5,6 +5,7 @@ import { AppError, handleError } from "../../utils/apiResponseHandler";
 
 import { prisma } from "../../lib/prisma";
 import { submissionQueue } from "../../utils/queue";
+import { getIO } from "../../ws/socket";
 import { authMiddleware } from "../middleware/auth.middleware";
 import Role from "../types/roles";
 import { catchAsync } from "../utils/catchAsyncWrapper";
@@ -85,6 +86,24 @@ export class SubmissionController {
                     removeOnComplete: true,
                     removeOnFail: false,
                 });
+
+                // Notify teachers watching this assignment about the new submission
+                try {
+                    const io = getIO();
+                    io.to(`assignment:${assignmentId}`).emit("new-submission", {
+                        assignmentId,
+                        submission: {
+                            id: submission.id,
+                            studentId: submission.studentId,
+                            status: submission.status,
+                            submittedAt: submission.submittedAt,
+                        },
+                    });
+                    console.log(`📡 Notified teachers about new submission for assignment ${assignmentId}`);
+                } catch (socketError) {
+                    // Socket may not be initialized in some contexts (e.g., tests)
+                    console.warn("Could not emit socket event:", socketError);
+                }
 
                 return res
                     .status(201)
