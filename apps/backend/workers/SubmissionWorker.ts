@@ -111,6 +111,8 @@ function runGeminiGrader(
     context: {
         rubric?: { name: string; points: number; description: string }[];
         description?: string;
+        title?: string;
+        maxScore?: number;
     } = {},
 ): Promise<GeminiEvaluation> {
     return new Promise<GeminiEvaluation>((resolve, reject) => {

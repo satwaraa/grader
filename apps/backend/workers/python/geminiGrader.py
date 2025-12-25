@@ -79,6 +79,10 @@ try:
     # Create evaluation prompt header
     rubric_text = ""
     max_score = context_max_score if context_max_score else 100  # Use assignment maxScore if provided
+
+    # Debug: log the maxScore being used
+    publish({"info": f"Assignment maxScore from context: {context_max_score}", "step": "debug_maxscore"})
+    publish({"info": f"Using max_score: {max_score}", "step": "debug_maxscore"})
     if rubric:
         # Handle both formats: rubric can be a list of criteria directly, or a dict with name/criteria
         if isinstance(rubric, list):
