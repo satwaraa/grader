@@ -263,7 +263,13 @@ const worker = new Worker<SubmissionJobData>(
                 | { name: string; points: number; description: string }[]
                 | undefined = undefined;
             if (assignment.rubric && Array.isArray(assignment.rubric.criteria)) {
-                formattedRubric = (assignment.rubric.criteria as { name: string; points: number; description: string }[]).map((c) => ({
+                formattedRubric = (
+                    assignment.rubric.criteria as {
+                        name: string;
+                        points: number;
+                        description: string;
+                    }[]
+                ).map((c) => ({
                     name: c.name,
                     points: c.points,
                     description: c.description,
@@ -369,7 +375,7 @@ ${evaluation.feedback}
     },
     {
         connection: redis,
-        concurrency: 2,
+        concurrency: 5,
     },
 );
 

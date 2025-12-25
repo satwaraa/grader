@@ -1,5 +1,6 @@
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { getApiUrl } from '../config';
 import { logout, setCredentials } from '../features/auth/authSlice';
 import type { RootState } from './store';
 
@@ -8,7 +9,7 @@ let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
 const baseQuery = fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8600/api',
+    baseUrl: getApiUrl(),
     prepareHeaders: (headers, { getState }) => {
         const token = (getState() as RootState).auth.token || localStorage.getItem('accessToken');
         if (token) {

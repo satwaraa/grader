@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { getWsUrl } from '../config';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -16,8 +17,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Use VITE_WS_URL or VITE_API_URL, fallback to localhost in development
-        const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:8600';
+        const wsUrl = getWsUrl();
         const socketInstance = io(wsUrl, {
             withCredentials: true,
             transports: ['websocket'],
