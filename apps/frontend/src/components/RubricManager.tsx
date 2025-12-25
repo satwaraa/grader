@@ -136,15 +136,21 @@ const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                                 {rubric.criteria.length} criteria
                                             </p>
                                         </div>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex gap-1 transition-opacity">
                                             <button
-                                                onClick={() => handleEdit(rubric)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEdit(rubric);
+                                                }}
                                                 disabled={deletingId === rubric.id}
                                                 className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-50">
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(rubric.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(rubric.id);
+                                                }}
                                                 disabled={deletingId === rubric.id}
                                                 className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-50">
                                                 {deletingId === rubric.id ? (

@@ -54,73 +54,24 @@ jobs:
             git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
             git pull
 
-            # Build Docker images with dynamic tag
-            echo "🐳 Building Docker images with tag: $IMAGE_TAG"
+            # Stop existing containers
+            echo "🛑 Stopping existing containers..."
+            docker compose down || true
 
-            # Build API image
-            docker build -t assignment-grader-api:$IMAGE_TAG \
-              -f apps/backend/Dockerfile.api \
-              apps/backend/
+            # Build and start with docker-compose
+            echo "🐳 Building and starting containers..."
+            docker compose up -d --build
 
-            # Build Worker image
-            docker build -t assignment-grader-worker:$IMAGE_TAG \
-              -f apps/backend/Dockerfile.workers \
-              apps/backend/
-
-            # Build Frontend image
-            docker build -t assignment-grader-frontend:$IMAGE_TAG \
-              -f apps/frontend/Dockerfile \
-              apps/frontend/
-
-            # Import images into MicroK8s containerd (no registry needed!)
-            echo "📤 Importing images into MicroK8s..."
-
-            # Save and import API image
-            docker save assignment-grader-api:$IMAGE_TAG | microk8s ctr image import -
-
-            # Save and import Worker image
-            docker save assignment-grader-worker:$IMAGE_TAG | microk8s ctr image import -
-
-            # Save and import Frontend image
-            docker save assignment-grader-frontend:$IMAGE_TAG | microk8s ctr image import -
-
-            echo "✅ Images imported successfully"
-
-            # Update Helm dependencies
-            echo "📦 Updating Helm dependencies..."
-            cd helm/assignment-grader
-            microk8s helm3 dependency update
-            cd ../..
-
-            # Deploy/Upgrade Helm chart with new image tag
-            echo "⎈ Deploying Helm chart with tag: $IMAGE_TAG"
-            microk8s helm3 upgrade --install assignment-grader \
-              ./helm/assignment-grader \
-              -f ./helm/assignment-grader/values-microk8s.yaml \
-              --namespace assignment-grader \
-              --create-namespace \
-              --set api.image.repository=docker.io/library/assignment-grader-api \
-              --set api.image.tag=$IMAGE_TAG \
-              --set api.image.pullPolicy=Never \
-              --set ws.image.repository=docker.io/library/assignment-grader-api \
-              --set ws.image.tag=$IMAGE_TAG \
-              --set ws.image.pullPolicy=Never \
-              --set worker.image.repository=docker.io/library/assignment-grader-worker \
-              --set worker.image.tag=$IMAGE_TAG \
-              --set worker.image.pullPolicy=Never \
-              --set frontend.image.repository=docker.io/library/assignment-grader-frontend \
-              --set frontend.image.tag=$IMAGE_TAG \
-              --set frontend.image.pullPolicy=Never \
-              --wait \
-              --timeout 10m
+            # Wait for containers to be healthy
+            echo "⏳ Waiting for containers to start..."
+            sleep 15
 
             # Verify deployment
             echo "✅ Verifying deployment..."
-            microk8s kubectl get pods -n assignment-grader
+            docker compose ps
 
             # Health check
             echo "🏥 Running health check..."
-            sleep 10
-            curl -s http://localhost/api/health || echo "Health check pending..."
+            curl -s http://localhost:8600/api/health || echo "Health check pending..."
 
             echo "🎉 Deployment complete with image tag: $IMAGE_TAG"

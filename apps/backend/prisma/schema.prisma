@@ -48,7 +48,7 @@ model Assignment {
   teacher     User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   submissions Submission[]
   rubricId    String?
-  rubric      Rubric?      @relation(fields: [rubricId], references: [id])
+  rubric      Rubric?      @relation(fields: [rubricId], references: [id], onDelete: SetNull)
 
   @@map("assignments")
 }
