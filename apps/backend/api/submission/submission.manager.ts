@@ -47,6 +47,7 @@ export class SubmissionManager {
                     select: {
                         title: true,
                         dueDate: true,
+                        maxScore: true,
                     },
                 },
             },
@@ -86,6 +87,7 @@ export class SubmissionManager {
                 assignment: {
                     select: {
                         title: true,
+                        maxScore: true,
                     },
                 },
             },

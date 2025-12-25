@@ -173,6 +173,7 @@ Images may contain important information like diagrams, charts, handwritten solu
     closing_prompt = f"""
 === END OF SUBMISSION ===
 
+
 EVALUATION INSTRUCTIONS:
 
 STEP 1 - RELEVANCE CHECK (MOST IMPORTANT):
@@ -181,32 +182,36 @@ First, determine if the submission is RELEVANT to the assignment title and descr
 - If the submission is COMPLETELY UNRELATED (e.g., you expected a "DevOps Synopsis" but got a "Resume"), give score = 0.
 - Do NOT be lenient. If content doesn't match the assignment topic, the score is 0.
 
-STEP 2 - SCORING (if submission is relevant):
-- Maximum possible score: {max_score} points
-- If a rubric is provided, score based on the sum of rubric criteria points (total: {max_score})
-- If no rubric, score out of 100
+STEP 2 - SCORING:
+*** CRITICAL: THE MAXIMUM SCORE IS {max_score} POINTS, NOT 100! ***
+- Your score MUST be between 0 and {max_score}
+- DO NOT score out of 100. Score out of {max_score}.
+- Example: If max is {max_score}, a perfect submission gets {max_score}, a good submission gets around {int(max_score * 0.8)}, a mediocre one gets around {int(max_score * 0.5)}.
 - Grade MODERATELY - expect quality work that meets the requirements
 - Do NOT give generous scores for mediocre work
 
-STEP 3 - RUBRIC EVALUATION:
-- If a rubric is provided, evaluate EACH criterion independently
+STEP 3 - RUBRIC EVALUATION (if rubric provided):
+- Evaluate EACH criterion independently
+- The total points of all criteria = {max_score}
 - If submission doesn't address a criterion, that criterion scores 0
-- Sum up the points for the final score
+- Sum up the points earned for each criterion for the final score
 - The score MUST be based on rubric criteria, NOT general content quality
 
 Consider BOTH text content AND any images/figures when evaluating.
 Images may contain critical information like diagrams, flowcharts, handwritten work, charts, or code.
 
 Provide:
-1. **Score**: 0 if off-topic. Otherwise, score out of {max_score} based on rubric criteria.
+1. **Score**: An integer from 0 to {max_score}. NOT out of 100! Score is out of {max_score}.
 2. **Strengths**: What the student did well (empty array if off-topic or nothing good)
 3. **Weaknesses**: Areas for improvement. If off-topic, state that submission doesn't match assignment.
 4. **Feedback**: Detailed feedback. If off-topic, explain what was expected vs what was submitted.
 5. **Summary**: Brief summary. Must indicate if submission is relevant or off-topic.
 
+*** REMINDER: Maximum possible score is {max_score}. Your score value must be between 0 and {max_score}! ***
+
 Respond in the following JSON format:
 {{
-    "score": <number 0-{max_score}>,
+    "score": <integer from 0 to {max_score}>,
     "strengths": ["strength1", "strength2", ...],
     "weaknesses": ["weakness1", "weakness2", ...],
     "feedback": "detailed feedback text",
