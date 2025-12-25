@@ -161,6 +161,14 @@ const AssignmentUpload: React.FC = () => {
 
     const handleUploadClick = () => {
         if (!file) return;
+
+        // Validate unique ID if required
+        if (assignmentData?.data?.requireUniqueId && !studentUniqueId.trim()) {
+            setErrorMessage('University ID is required for this assignment.');
+            setShowErrorDialog(true);
+            return;
+        }
+
         setShowOtpDialog(true);
     };
 
