@@ -70,7 +70,7 @@ export class SubmissionController {
 
     private async createSubmission(req: Request, res: Response) {
         try {
-            const { assignmentId } = req.body;
+            const { assignmentId, studentUniqueId } = req.body;
             const studentId = req.user.id;
             const role: Role = req.user.role;
 
@@ -78,6 +78,7 @@ export class SubmissionController {
                 const submission = await this.submissionManager.createSubmission({
                     studentId,
                     assignmentId,
+                    studentUniqueId,
                 });
 
                 await submissionQueue.add("grade_assignment", submission, {

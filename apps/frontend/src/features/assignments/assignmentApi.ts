@@ -80,7 +80,7 @@ export const assignmentApi = createApi({
                 },
             }),
         }),
-        submitAssignment: builder.mutation<{ success: boolean; data: Submission }, { assignmentId: string; otp: string }>({
+        submitAssignment: builder.mutation<{ success: boolean; data: Submission }, { assignmentId: string; otp: string; studentUniqueId?: string }>({
             query: (body) => ({
                 url: '/submissions/',
                 method: 'POST',

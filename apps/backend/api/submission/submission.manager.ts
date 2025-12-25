@@ -3,7 +3,7 @@ import { AppError } from "../../utils/apiResponseHandler";
 import Client from "../../utils/S3client";
 
 export class SubmissionManager {
-    async createSubmission(data: { studentId: string; assignmentId: string }) {
+    async createSubmission(data: { studentId: string; assignmentId: string; studentUniqueId?: string }) {
         try {
             const previousSubmission = await prisma.submission.findFirst({
                 where: {
@@ -20,6 +20,7 @@ export class SubmissionManager {
                         assignmentId: data.assignmentId,
                         studentId: data.studentId,
                         public_url: assignmentPublicUrl,
+                        studentUniqueId: data.studentUniqueId,
                     },
                 });
                 // return prisma.submission.create({

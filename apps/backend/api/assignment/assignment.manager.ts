@@ -9,6 +9,7 @@ export class AssignmentManager {
         otp: string;
         teacherId: string;
         rubricId?: string;
+        requireUniqueId?: boolean;
     }) {
         return prisma.assignment.create({
             data,

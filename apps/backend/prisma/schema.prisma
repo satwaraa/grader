@@ -34,14 +34,15 @@ model User {
 }
 
 model Assignment {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  maxScore    Int       @default(100)
-  dueDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  otp         String
+  id              String    @id @default(uuid())
+  title           String
+  description     String?
+  maxScore        Int       @default(100)
+  dueDate         DateTime?
+  requireUniqueId Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  otp             String
 
   // Relations
   teacherId   String
@@ -69,13 +70,14 @@ model Rubric {
 }
 
 model Submission {
-  id          String           @id @default(uuid())
-  public_url  String
-  score       Int?
-  feedback    String?
-  status      SubmissionStatus @default(PENDING)
-  submittedAt DateTime         @default(now())
-  gradedAt    DateTime?
+  id              String           @id @default(uuid())
+  public_url      String
+  score           Int?
+  feedback        String?
+  status          SubmissionStatus @default(PENDING)
+  submittedAt     DateTime         @default(now())
+  gradedAt        DateTime?
+  studentUniqueId String?
 
   // Relations
   studentId    String

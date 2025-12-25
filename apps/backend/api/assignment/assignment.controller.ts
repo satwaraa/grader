@@ -45,7 +45,7 @@ export class AssignmentController {
     }
 
     private async createAssignment(req: Request, res: Response) {
-        const { title, description, maxScore, dueDate, rubricId } = req.body;
+        const { title, description, maxScore, dueDate, rubricId, requireUniqueId } = req.body;
         const teacherId = req.user.id;
         const role = req.user.role;
 
@@ -65,6 +65,7 @@ export class AssignmentController {
             otp,
             teacherId,
             rubricId,
+            requireUniqueId: requireUniqueId ?? false,
         });
 
         return res

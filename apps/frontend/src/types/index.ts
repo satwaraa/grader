@@ -40,6 +40,7 @@ export interface Assignment {
     description?: string;
     maxScore: number;
     dueDate?: string;
+    requireUniqueId?: boolean;
     teacherId: string;
     createdAt: string;
     updatedAt: string;
@@ -84,7 +85,8 @@ export interface Submission {
     gradedAt?: string;
     studentId: string;
     assignmentId: string;
-    public_url:string;
+    public_url: string;
+    studentUniqueId?: string;
     student?: {
         name: string;
         email: string;
@@ -101,6 +103,8 @@ export interface CreateAssignmentRequest {
     description?: string;
     maxScore?: number;
     dueDate?: string;
+    rubricId?: string;
+    requireUniqueId?: boolean;
 }
 
 export interface CreateSubmissionRequest {

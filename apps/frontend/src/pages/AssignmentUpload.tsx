@@ -38,6 +38,12 @@ const AssignmentUpload: React.FC = () => {
     const [otp, setOtp] = useState('');
     const [otpError, setOtpError] = useState('');
 
+    // Unique ID state
+    const [studentUniqueId, setStudentUniqueId] = useState('');
+
+    // Collapsible sections
+    const [showRubric, setShowRubric] = useState(false);
+
     // Real-time grading state
     const { socket } = useSocket();
     const [progressLogs, setProgressLogs] = useState<string[]>([]);
@@ -249,6 +255,7 @@ const AssignmentUpload: React.FC = () => {
                         const res = await markSubmission({
                             assignmentId,
                             otp,
+                            studentUniqueId: studentUniqueId || undefined,
                         }).unwrap();
                         console.log('Submission created:', res);
                         const submissionId = res.data?.id;
@@ -377,46 +384,72 @@ const AssignmentUpload: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="p-8">
-                        <div className="mb-8">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    <div className="p-6">
+                        {/* Compact Instructions */}
+                        <div className="mb-4">
+                            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                                 Instructions
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-300">
+                            <p className="text-gray-700 dark:text-gray-300 text-sm">
                                 {assignment.description || 'No instructions provided.'}
                             </p>
                         </div>
 
+                        {/* Collapsible Rubric */}
                         {assignment.rubric && (
-                            <div className="mb-8">
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                                    Grading Rubric: {assignment.rubric.name}
-                                </h3>
-                                <div className="space-y-3">
-                                    {assignment.rubric.criteria.map(
-                                        (criterion: { name: string; description: string; points: number }, index: number) => (
-                                            <div
-                                                key={index}
-                                                className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">
-                                                        {criterion.name}
-                                                    </h4>
-                                                    <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded-full">
-                                                        {criterion.points} pts
-                                                    </span>
+                            <div className="mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRubric(!showRubric)}
+                                    className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-900 dark:text-white py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                    <span>Grading Rubric: {assignment.rubric.name} ({assignment.rubric.criteria.reduce((sum: number, c: { points: number }) => sum + c.points, 0)} pts)</span>
+                                    <span className="text-gray-500">{showRubric ? '▼' : '▶'}</span>
+                                </button>
+                                {showRubric && (
+                                    <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+                                        {assignment.rubric.criteria.map(
+                                            (criterion: { name: string; description: string; points: number }, index: number) => (
+                                                <div
+                                                    key={index}
+                                                    className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                                                            {criterion.name}
+                                                        </h4>
+                                                        <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded-full">
+                                                            {criterion.points} pts
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {criterion.description}
+                                                    </p>
                                                 </div>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {criterion.description}
-                                                </p>
-                                            </div>
-                                        )
-                                    )}
-                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        <div className="space-y-6">
+                        {/* Unique ID Input (if required) */}
+                        {assignment.requireUniqueId && (
+                            <div className="mb-4">
+                                <label htmlFor="studentUniqueId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    University ID <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="studentUniqueId"
+                                    value={studentUniqueId}
+                                    onChange={(e) => setStudentUniqueId(e.target.value)}
+                                    placeholder="Enter your University ID"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                    required
+                                />
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
                             <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 text-center hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors bg-gray-50 dark:bg-gray-800/30">
                                 <input
                                     type="file"

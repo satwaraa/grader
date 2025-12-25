@@ -69,6 +69,7 @@ const Dashboard: React.FC = () => {
     const [dueDate, setDueDate] = useState('');
     const [maxScore, setMaxScore] = useState('100');
     const [selectedRubricId, setSelectedRubricId] = useState<string>('');
+    const [requireUniqueId, setRequireUniqueId] = useState(false);
 
     const activeAssignments = useMemo(
         () => assignmentsData?.data || [],
@@ -170,12 +171,14 @@ const Dashboard: React.FC = () => {
                 dueDate,
                 maxScore: parseInt(maxScore),
                 rubricId: selectedRubricId || undefined,
+                requireUniqueId,
             }).unwrap();
             setIsCreateModalOpen(false);
             setTitle('');
             setDescription('');
             setDueDate('');
             setSelectedRubricId('');
+            setRequireUniqueId(false);
             alert('Assignment created successfully!');
         } catch (error) {
             console.error('Failed to create assignment', error);
@@ -360,6 +363,21 @@ const Dashboard: React.FC = () => {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* Require Unique ID Checkbox */}
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    id="requireUniqueId"
+                                    checked={requireUniqueId}
+                                    onChange={(e) => setRequireUniqueId(e.target.checked)}
+                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                />
+                                <label htmlFor="requireUniqueId" className="text-sm text-gray-700 dark:text-gray-300">
+                                    Require University ID on submission
+                                </label>
+                            </div>
+
                             <button
                                 type="submit"
                                 disabled={isCreating}

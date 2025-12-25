@@ -179,9 +179,16 @@ const AssignmentSubmissions: React.FC = () => {
                                             <User className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-lg">
-                                                {submission.student?.name || 'Student'}
-                                            </h3>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-semibold text-lg">
+                                                    {submission.student?.name || 'Student'}
+                                                </h3>
+                                                {submission.studentUniqueId && (
+                                                    <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
+                                                        ID: {submission.studentUniqueId}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                                 Submitted:{' '}
                                                 {new Date(
