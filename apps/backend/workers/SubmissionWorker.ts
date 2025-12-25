@@ -63,20 +63,25 @@ function runPython(
             const output = data.toString();
             console.log(`🐍 Python output: ${output}`);
 
-            try {
-                const msg = JSON.parse(output);
-                // Inject assignmentId and studentId for teacher dashboard
-                const enrichedMsg = { ...msg, assignmentId, studentId };
-                console.log(`📤 Publishing event:`, enrichedMsg);
+            // Split by newlines to handle multiple JSON objects in one chunk
+            const lines = output.split('\n').filter((line: string) => line.trim());
 
-                // Store extracted data when parsing is completed
-                if (msg.step === "parsing_completed" && msg.result) {
-                    extractedData = msg.result;
+            for (const line of lines) {
+                try {
+                    const msg = JSON.parse(line);
+                    // Inject assignmentId and studentId for teacher dashboard
+                    const enrichedMsg = { ...msg, assignmentId, studentId };
+                    console.log(`📤 Publishing event:`, enrichedMsg);
+
+                    // Store extracted data when parsing is completed
+                    if (msg.step === "parsing_completed" && msg.result) {
+                        extractedData = msg.result;
+                    }
+
+                    redis.publish(`submission:${submissionId}`, JSON.stringify(enrichedMsg));
+                } catch {
+                    console.log(`⚠️  Non-JSON output (ignored): ${line}`);
                 }
-
-                redis.publish(`submission:${submissionId}`, JSON.stringify(enrichedMsg));
-            } catch {
-                console.log(`⚠️  Non-JSON output (ignored): ${output}`);
             }
         });
 
@@ -139,20 +144,25 @@ function runGeminiGrader(
             const output = data.toString();
             console.log(`🤖 Gemini output: ${output}`);
 
-            try {
-                const msg = JSON.parse(output);
-                // Inject assignmentId and studentId for teacher dashboard
-                const enrichedMsg = { ...msg, assignmentId, studentId };
-                console.log(`📤 Publishing event:`, enrichedMsg);
+            // Split by newlines to handle multiple JSON objects in one chunk
+            const lines = output.split('\n').filter((line: string) => line.trim());
 
-                // Store evaluation when Gemini completes
-                if (msg.step === "gemini_completed" && msg.evaluation) {
-                    evaluation = msg.evaluation;
+            for (const line of lines) {
+                try {
+                    const msg = JSON.parse(line);
+                    // Inject assignmentId and studentId for teacher dashboard
+                    const enrichedMsg = { ...msg, assignmentId, studentId };
+                    console.log(`📤 Publishing event:`, enrichedMsg);
+
+                    // Store evaluation when Gemini completes
+                    if (msg.step === "gemini_completed" && msg.evaluation) {
+                        evaluation = msg.evaluation;
+                    }
+
+                    redis.publish(`submission:${submissionId}`, JSON.stringify(enrichedMsg));
+                } catch {
+                    console.log(`⚠️  Non-JSON output (ignored): ${line}`);
                 }
-
-                redis.publish(`submission:${submissionId}`, JSON.stringify(enrichedMsg));
-            } catch {
-                console.log(`⚠️  Non-JSON output (ignored): ${output}`);
             }
         });
 
@@ -279,6 +289,7 @@ const worker = new Worker<SubmissionJobData>(
             const context = {
                 rubric: formattedRubric,
                 description: assignment.description || undefined,
+                title: assignment.title,
             };
 
             const evaluation = await runGeminiGrader(

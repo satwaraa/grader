@@ -24,11 +24,10 @@ const AssignmentUpload: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>();
     const [fileType, setFileType] = useState<string>();
-    // const [uploadData, setUploadData] = useState<{
-    //     url: string;
-    //     key: string;
-    // } | null>(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [fileError, setFileError] = useState<string>('');
 
     // Error Dialog state
     const [showErrorDialog, setShowErrorDialog] = useState(false);
@@ -68,7 +67,7 @@ const AssignmentUpload: React.FC = () => {
             total_pages?: number;
             score?: number;
         }) => {
-            console.log('Progress Event:', event);
+            // console.log('Progress Event:', event);
 
             if (event.error) {
                 setGradingStatus('failed');
@@ -128,11 +127,22 @@ const AssignmentUpload: React.FC = () => {
     }, [socket]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFileError('');
         if (e.target.files && e.target.files[0]) {
-            // console.log(e.target.files[0]);
-            setFileName(e.target.files[0].name);
-            setFileType(e.target.files[0].type);
-            setFile(e.target.files[0]);
+            const selectedFile = e.target.files[0];
+
+            // Only allow PDF files
+            if (selectedFile.type !== 'application/pdf') {
+                setFileError('Only PDF files are allowed');
+                setFile(null);
+                setFileName(undefined);
+                setFileType(undefined);
+                return;
+            }
+
+            setFileName(selectedFile.name);
+            setFileType(selectedFile.type);
+            setFile(selectedFile);
         }
     };
 
@@ -196,18 +206,43 @@ const AssignmentUpload: React.FC = () => {
     const performUpload = async (currentUploadData: { url: string; key: string }) => {
         if (!file || !currentUploadData) return;
 
+        setIsUploading(true);
+        setUploadProgress(0);
+
         try {
             console.log('Starting upload...');
-            const response = await fetch(currentUploadData.url, {
-                method: 'PUT',
-                body: file,
-                headers: {
-                    'Content-Type': file.type,
-                },
+
+            // Use XMLHttpRequest for progress tracking
+            const uploadSuccess = await new Promise<boolean>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        setUploadProgress(percent);
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(true);
+                    } else {
+                        resolve(false);
+                    }
+                });
+
+                xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+                xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+
+                xhr.open('PUT', currentUploadData.url);
+                xhr.setRequestHeader('Content-Type', file.type);
+                xhr.send(file);
             });
 
-            if (response.ok) {
+            if (uploadSuccess) {
                 console.log('Upload successful!');
+                setUploadProgress(100);
+
                 if (assignmentId) {
                     try {
                         const res = await markSubmission({
@@ -215,7 +250,6 @@ const AssignmentUpload: React.FC = () => {
                             otp,
                         }).unwrap();
                         console.log('Submission created:', res);
-                        // Assuming res.data contains the submission object with id
                         const submissionId = res.data?.id;
 
                         if (socket && submissionId) {
@@ -248,6 +282,8 @@ const AssignmentUpload: React.FC = () => {
                     : 'Unexpected error while uploading. Please try again.';
             setErrorMessage(message);
             setShowErrorDialog(true);
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -386,11 +422,13 @@ const AssignmentUpload: React.FC = () => {
                                     id="file-upload"
                                     className="hidden"
                                     onChange={handleFileChange}
+                                    accept=".pdf,application/pdf"
+                                    disabled={isUploading}
                                     required
                                 />
                                 <label
                                     htmlFor="file-upload"
-                                    className="cursor-pointer flex flex-col items-center justify-center">
+                                    className={`flex flex-col items-center justify-center ${isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                                     {file ? (
                                         <>
                                             <FileText className="h-12 w-12 text-indigo-600 dark:text-indigo-400 mb-3" />
@@ -400,9 +438,11 @@ const AssignmentUpload: React.FC = () => {
                                             <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                                 {(file.size / 1024 / 1024).toFixed(2)} MB
                                             </span>
-                                            <span className="text-sm text-indigo-600 dark:text-indigo-400 mt-4 hover:underline">
-                                                Change file
-                                            </span>
+                                            {!isUploading && (
+                                                <span className="text-sm text-indigo-600 dark:text-indigo-400 mt-4 hover:underline">
+                                                    Change file
+                                                </span>
+                                            )}
                                         </>
                                     ) : (
                                         <>
@@ -411,12 +451,31 @@ const AssignmentUpload: React.FC = () => {
                                                 Click to upload or drag and drop
                                             </span>
                                             <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                                PDF, DOCX, ZIP up to 10MB
+                                                PDF files only, up to 10MB
                                             </span>
                                         </>
                                     )}
                                 </label>
+                                {fileError && (
+                                    <p className="text-sm text-red-500 mt-2">{fileError}</p>
+                                )}
                             </div>
+
+                            {/* Upload Progress Bar */}
+                            {isUploading && (
+                                <div className="mt-4">
+                                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                        <span>Uploading...</span>
+                                        <span>{uploadProgress}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                        <div
+                                            className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex justify-end gap-4">
                                 {/* <button
@@ -430,10 +489,22 @@ const AssignmentUpload: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleUploadClick}
-                                    disabled={!file}
+                                    disabled={!file || isUploading}
                                     className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
-                                    <CheckCircle className="h-5 w-5" />
-                                    'Submit Assignment'
+                                    {isUploading ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Uploading... {uploadProgress}%
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle className="h-5 w-5" />
+                                            Submit Assignment
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
