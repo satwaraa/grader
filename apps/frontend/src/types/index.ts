@@ -92,6 +92,7 @@ export interface Submission {
     assignment?: {
         title: string;
         dueDate: string;
+        maxScore: number;
     };
 }
 

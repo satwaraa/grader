@@ -57,6 +57,8 @@ try:
     rubric = context.get("rubric")
     description = context.get("description", "")
     title = context.get("title", "Assignment")
+    # Get maxScore from context (assignment's maxScore), fallback to rubric calculation or 100
+    context_max_score = context.get("maxScore")
 
     # Count total images
     total_images = sum(len(page.get('images', [])) for page in extracted_data)
@@ -76,7 +78,7 @@ try:
 
     # Create evaluation prompt header
     rubric_text = ""
-    max_score = 100  # Default if no rubric
+    max_score = context_max_score if context_max_score else 100  # Use assignment maxScore if provided
     if rubric:
         # Handle both formats: rubric can be a list of criteria directly, or a dict with name/criteria
         if isinstance(rubric, list):
@@ -86,10 +88,11 @@ try:
             criteria_list = rubric.get('criteria', [])
             rubric_name = rubric.get('name', 'Rubric')
 
-        # Calculate total points from rubric
-        max_score = sum(c.get('points', 0) for c in criteria_list)
-        if max_score == 0:
-            max_score = 100  # Fallback if no points defined
+        # Calculate total points from rubric if maxScore not provided in context
+        if not context_max_score:
+            rubric_total = sum(c.get('points', 0) for c in criteria_list)
+            if rubric_total > 0:
+                max_score = rubric_total
 
         rubric_text = f"""
 === RUBRIC ===

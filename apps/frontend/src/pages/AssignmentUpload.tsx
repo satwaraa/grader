@@ -66,6 +66,7 @@ const AssignmentUpload: React.FC = () => {
             page?: number;
             total_pages?: number;
             score?: number;
+            maxScore?: number;
         }) => {
             // console.log('Progress Event:', event);
 
@@ -107,7 +108,7 @@ const AssignmentUpload: React.FC = () => {
                     logMessage = '✨ AI evaluation finished.';
                     break;
                 case 'grading_completed':
-                    logMessage = `🎉 Grading completed! Score: ${event.score}/100`;
+                    logMessage = `🎉 Grading completed! Score: ${event.score}/${event.maxScore || 100}`;
                     setGradingStatus('completed');
                     break;
                 default:

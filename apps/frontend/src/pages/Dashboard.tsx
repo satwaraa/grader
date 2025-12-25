@@ -635,7 +635,7 @@ const Dashboard: React.FC = () => {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                {item.score !== null ? `${item.score}/100` : '-'}
+                                                {item.score !== null ? `${item.score}/${item.assignment?.maxScore || 100}` : '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex gap-3 items-center">
@@ -693,7 +693,7 @@ const Dashboard: React.FC = () => {
                                     <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                                         {selectedSubmission.score}
                                     </span>
-                                    <span className="text-gray-400">/ 100</span>
+                                    <span className="text-gray-400">/ {selectedSubmission.assignment?.maxScore || 100}</span>
                                 </div>
                             </div>
 

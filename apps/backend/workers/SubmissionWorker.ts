@@ -290,6 +290,7 @@ const worker = new Worker<SubmissionJobData>(
                 rubric: formattedRubric,
                 description: assignment.description || undefined,
                 title: assignment.title,
+                maxScore: assignment.maxScore,
             };
 
             const evaluation = await runGeminiGrader(
@@ -299,7 +300,7 @@ const worker = new Worker<SubmissionJobData>(
                 studentId,
                 context,
             );
-            console.log(`✅ Gemini grading completed. Score: ${evaluation.score}/100`);
+            console.log(`✅ Gemini grading completed. Score: ${evaluation.score}/${assignment.maxScore}`);
 
             await job.updateProgress(95);
 
@@ -308,7 +309,7 @@ const worker = new Worker<SubmissionJobData>(
             const fullFeedback = `
 **Summary:** ${evaluation.summary}
 
-**Score:** ${evaluation.score}/100
+**Score:** ${evaluation.score}/${assignment.maxScore}
 
 ${
     evaluation.strengths && evaluation.strengths.length > 0
@@ -343,6 +344,7 @@ ${evaluation.feedback}
                     step: "grading_completed",
                     percent: 100,
                     score: evaluation.score,
+                    maxScore: assignment.maxScore,
                     status: "GRADED",
                     assignmentId,
                     studentId,

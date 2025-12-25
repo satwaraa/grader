@@ -220,7 +220,7 @@ const AssignmentSubmissions: React.FC = () => {
                                             )}
                                             {submission.score !== null && (
                                                 <p className="text-sm font-bold mt-1">
-                                                    Score: {submission.score}/100
+                                                    Score: {submission.score}/{assignment?.maxScore || 100}
                                                 </p>
                                             )}
                                         </div>
@@ -270,7 +270,7 @@ const AssignmentSubmissions: React.FC = () => {
                                     <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                                         {selectedSubmission.score}
                                     </span>
-                                    <span className="text-gray-400">/ 100</span>
+                                    <span className="text-gray-400">/ {assignment?.maxScore || 100}</span>
                                 </div>
                             </div>
 
