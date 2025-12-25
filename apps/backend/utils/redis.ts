@@ -16,13 +16,13 @@ const isProduction = nodeEnv === "production";
 
 // Only load dotenv in development (not in production/Kubernetes)
 if (!isProduction) {
-    try {
-        const { config } = require("dotenv");
-        const path = require("path");
-        config({ path: path.join(__dirname, "../.env") });
-    } catch {
+    import("dotenv").then(({ config }) => {
+        import("path").then((pathModule) => {
+            config({ path: pathModule.join(__dirname, "../.env") });
+        });
+    }).catch(() => {
         // Ignore if dotenv not available
-    }
+    });
 }
 
 // Use REDIS_URL from environment in production, localhost in development

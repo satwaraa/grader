@@ -263,8 +263,7 @@ const worker = new Worker<SubmissionJobData>(
                 | { name: string; points: number; description: string }[]
                 | undefined = undefined;
             if (assignment.rubric && Array.isArray(assignment.rubric.criteria)) {
-                /* eslint-disable @typescript-eslint/no-explicit-any */
-                formattedRubric = assignment.rubric.criteria.map((c: any) => ({
+                formattedRubric = (assignment.rubric.criteria as { name: string; points: number; description: string }[]).map((c) => ({
                     name: c.name,
                     points: c.points,
                     description: c.description,
