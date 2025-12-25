@@ -10,12 +10,15 @@ import type { RubricCriterion } from '../types';
 
 const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { data: rubricsData, isLoading } = useGetRubricsQuery();
-    const [createRubric] = useCreateRubricMutation();
-    const [updateRubric] = useUpdateRubricMutation();
+    const [createRubric, { isLoading: isCreating }] = useCreateRubricMutation();
+    const [updateRubric, { isLoading: isUpdating }] = useUpdateRubricMutation();
     const [deleteRubric] = useDeleteRubricMutation();
 
-    const [isCreating, setIsCreating] = useState(false);
+    const isSubmitting = isCreating || isUpdating;
+
+    const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [name, setName] = useState('');
     const [criteria, setCriteria] = useState<RubricCriterion[]>([
         { name: '', description: '', points: 10 },
@@ -60,11 +63,11 @@ const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         setEditingId(rubric.id);
         setName(rubric.name);
         setCriteria(rubric.criteria);
-        setIsCreating(true);
+        setIsCreatingNew(true);
     };
 
     const resetForm = () => {
-        setIsCreating(false);
+        setIsCreatingNew(false);
         setEditingId(null);
         setName('');
         setCriteria([{ name: '', description: '', points: 10 }]);
@@ -72,18 +75,22 @@ const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     const handleNewRubric = () => {
         resetForm();
-        setIsCreating(true);
+        setIsCreatingNew(true);
     };
 
     const handleDelete = async (id: string) => {
         if (confirm('Are you sure you want to delete this rubric?')) {
             try {
+                setDeletingId(id);
                 await deleteRubric(id).unwrap();
                 if (editingId === id) {
                     resetForm();
                 }
             } catch (error) {
                 console.error('Failed to delete rubric', error);
+                alert('Failed to delete rubric');
+            } finally {
+                setDeletingId(null);
             }
         }
     };
@@ -132,13 +139,19 @@ const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => handleEdit(rubric)}
-                                                className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
+                                                disabled={deletingId === rubric.id}
+                                                className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-50">
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(rubric.id)}
-                                                className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
-                                                <Trash2 className="h-4 w-4" />
+                                                disabled={deletingId === rubric.id}
+                                                className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-50">
+                                                {deletingId === rubric.id ? (
+                                                    <div className="h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
                                             </button>
                                         </div>
                                     </div>
@@ -149,7 +162,7 @@ const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                     {/* Main Content Area */}
                     <div className="flex-1 p-6 overflow-y-auto">
-                        {isCreating ? (
+                        {isCreatingNew ? (
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-lg font-semibold">
@@ -249,13 +262,18 @@ const RubricManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                     <button
                                         type="button"
                                         onClick={resetForm}
-                                        className="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 disabled:opacity-50">
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                                        {editingId ? 'Update Rubric' : 'Save Rubric'}
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2">
+                                        {isSubmitting && (
+                                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        )}
+                                        {isSubmitting ? 'Saving...' : editingId ? 'Update Rubric' : 'Save Rubric'}
                                     </button>
                                 </div>
                             </form>

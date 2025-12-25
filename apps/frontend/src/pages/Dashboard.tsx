@@ -333,12 +333,29 @@ const Dashboard: React.FC = () => {
                                 </label>
                                 <select
                                     value={selectedRubricId}
-                                    onChange={(e) => setSelectedRubricId(e.target.value)}
+                                    onChange={(e) => {
+                                        const rubricId = e.target.value;
+                                        setSelectedRubricId(rubricId);
+
+                                        // Auto-set maxScore based on rubric criteria
+                                        if (rubricId && rubricsData?.data) {
+                                            const selectedRubric = rubricsData.data.find(r => r.id === rubricId);
+                                            if (selectedRubric?.criteria) {
+                                                const totalPoints = selectedRubric.criteria.reduce(
+                                                    (sum, criterion) => sum + (criterion.points || 0),
+                                                    0
+                                                );
+                                                if (totalPoints > 0) {
+                                                    setMaxScore(totalPoints.toString());
+                                                }
+                                            }
+                                        }
+                                    }}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent">
                                     <option value="">No Rubric</option>
                                     {rubricsData?.data.map((rubric) => (
                                         <option key={rubric.id} value={rubric.id}>
-                                            {rubric.name}
+                                            {rubric.name} ({rubric.criteria.reduce((sum, c) => sum + (c.points || 0), 0)} pts)
                                         </option>
                                     ))}
                                 </select>
