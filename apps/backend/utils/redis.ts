@@ -6,19 +6,28 @@
 
 // export default redisClient;
 
-import { config } from "dotenv";
 import IORedis from "ioredis";
-import path from "path";
 
-config({ path: path.join(__dirname, "../.env") });
+// Access process.env through globalThis to prevent bundler constant folding
+// This forces runtime evaluation instead of build-time optimization
+const env = (globalThis as any).process?.env || {};
+const nodeEnv = env.NODE_ENV || "development";
+const isProduction = nodeEnv === "production";
 
-// Use localhost in development, server URL in production
-const isProduction = process.env.NODE_ENV === "production";
+// Only load dotenv in development (not in production/Kubernetes)
+if (!isProduction) {
+    try {
+        const { config } = require("dotenv");
+        const path = require("path");
+        config({ path: path.join(__dirname, "../.env") });
+    } catch {
+        // Ignore if dotenv not available
+    }
+}
+
+// Use REDIS_URL from environment in production, localhost in development
 const localRedisUrl = "redis://localhost:6379";
-
-// In development: ALWAYS use localhost (ignore .env REDIS_URL)
-// In production: use REDIS_URL from environment
-const redisUrl = isProduction ? process.env.REDIS_URL! : localRedisUrl;
+const redisUrl = isProduction ? (env.REDIS_URL || localRedisUrl) : localRedisUrl;
 
 console.log(`📡 Redis connecting to: ${redisUrl} (${isProduction ? "production" : "development"})`);
 

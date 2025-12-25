@@ -1,0 +1,115 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  REPO_PATH: /home/satwaraa/lpu_auto_assignment_grading   # Path to repo on server
+
+jobs:
+  deploy:
+    name: Deploy to Server via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code (for reference)
+        uses: actions/checkout@v4
+
+      - name: Set image tag from git SHA
+        run: |
+          # Use first 7 characters of git SHA as image tag
+          # This auto-increments with every commit!
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+          echo "📌 Image tag will be: ${GITHUB_SHA::7}"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          REPO_PATH: ${{ env.REPO_PATH }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          envs: IMAGE_TAG,REPO_PATH
+          script: |
+            set -e
+
+            echo "🚀 Starting deployment..."
+            echo "🏷️ Image tag: $IMAGE_TAG (auto-generated from git SHA)"
+
+            # Navigate to repo directory
+            cd $REPO_PATH
+            echo "📁 Current directory: $(pwd)"
+
+            # Pull latest code
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+            git pull
+
+            # Build Docker images with dynamic tag
+            echo "🐳 Building Docker images with tag: $IMAGE_TAG"
+
+            # Build API image
+            docker build -t localhost:32000/assignment-grader-api:$IMAGE_TAG \
+              -t localhost:32000/assignment-grader-api:latest \
+              -f apps/backend/Dockerfile.api \
+              apps/backend/
+
+            # Build Worker image
+            docker build -t localhost:32000/assignment-grader-worker:$IMAGE_TAG \
+              -t localhost:32000/assignment-grader-worker:latest \
+              -f apps/backend/Dockerfile.worker \
+              apps/backend/
+
+            # Build Frontend image
+            docker build -t localhost:32000/assignment-grader-frontend:$IMAGE_TAG \
+              -t localhost:32000/assignment-grader-frontend:latest \
+              -f apps/frontend/Dockerfile \
+              apps/frontend/
+
+            # Push images to MicroK8s registry
+            echo "📤 Pushing images to MicroK8s registry..."
+            docker push localhost:32000/assignment-grader-api:$IMAGE_TAG
+            docker push localhost:32000/assignment-grader-api:latest
+            docker push localhost:32000/assignment-grader-worker:$IMAGE_TAG
+            docker push localhost:32000/assignment-grader-worker:latest
+            docker push localhost:32000/assignment-grader-frontend:$IMAGE_TAG
+            docker push localhost:32000/assignment-grader-frontend:latest
+
+            # Update Helm dependencies
+            echo "📦 Updating Helm dependencies..."
+            cd helm/assignment-grader
+            microk8s helm3 dependency update
+            cd ../..
+
+            # Deploy/Upgrade Helm chart with new image tag
+            echo "⎈ Deploying Helm chart with tag: $IMAGE_TAG"
+            microk8s helm3 upgrade --install assignment-grader \
+              ./helm/assignment-grader \
+              -f ./helm/assignment-grader/values-microk8s.yaml \
+              --namespace assignment-grader \
+              --create-namespace \
+              --set api.image.tag=$IMAGE_TAG \
+              --set ws.image.tag=$IMAGE_TAG \
+              --set worker.image.tag=$IMAGE_TAG \
+              --set frontend.image.tag=$IMAGE_TAG \
+              --wait \
+              --timeout 5m
+
+            # Verify deployment
+            echo "✅ Verifying deployment..."
+            microk8s kubectl get pods -n assignment-grader
+
+            # Health check
+            echo "🏥 Running health check..."
+            sleep 10
+            curl -s http://localhost/api/health || echo "Health check pending..."
+
+            echo "🎉 Deployment complete with image tag: $IMAGE_TAG"

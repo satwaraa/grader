@@ -1,0 +1,28 @@
+apiVersion: v2
+name: assignment-grader
+description: A Helm chart for Assignment Grader application with API, WebSocket, Worker, and Frontend services
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - assignment
+  - grader
+  - api
+  - websocket
+  - worker
+  - frontend
+
+maintainers:
+  - name: rimmi
+    email: maintainer@example.com
+
+dependencies:
+  - name: postgresql
+    version: "16.4.4"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: "20.6.2"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
