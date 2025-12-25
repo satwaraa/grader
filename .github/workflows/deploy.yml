@@ -65,7 +65,7 @@ jobs:
             # Build Worker image
             docker build -t localhost:32000/assignment-grader-worker:$IMAGE_TAG \
               -t localhost:32000/assignment-grader-worker:latest \
-              -f apps/backend/Dockerfile.worker \
+              -f apps/backend/Dockerfile.workers \
               apps/backend/
 
             # Build Frontend image
