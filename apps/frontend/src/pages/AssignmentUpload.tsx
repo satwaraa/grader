@@ -608,19 +608,12 @@ const AssignmentUpload: React.FC = () => {
                                 {errorMessage || 'You cannot submit this assignment again.'}
                             </DialogDescription>
                         </DialogHeader>
-                        <DialogFooter className="flex justify-end gap-2">
+                        <DialogFooter>
                             <button
                                 type="button"
                                 onClick={() => setShowErrorDialog(false)}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                                Close
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => navigate('/dashboard')}
-                                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                                <ArrowLeft className="h-4 w-4" />
-                                Back to Dashboard
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                Okay
                             </button>
                         </DialogFooter>
                     </DialogContent>
