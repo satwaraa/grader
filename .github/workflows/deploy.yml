@@ -37,6 +37,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           envs: IMAGE_TAG,REPO_PATH
+          command_timeout: 30m
           script: |
             set -e
 
@@ -57,31 +58,33 @@ jobs:
             echo "🐳 Building Docker images with tag: $IMAGE_TAG"
 
             # Build API image
-            docker build -t localhost:32000/assignment-grader-api:$IMAGE_TAG \
-              -t localhost:32000/assignment-grader-api:latest \
+            docker build -t assignment-grader-api:$IMAGE_TAG \
               -f apps/backend/Dockerfile.api \
               apps/backend/
 
             # Build Worker image
-            docker build -t localhost:32000/assignment-grader-worker:$IMAGE_TAG \
-              -t localhost:32000/assignment-grader-worker:latest \
+            docker build -t assignment-grader-worker:$IMAGE_TAG \
               -f apps/backend/Dockerfile.workers \
               apps/backend/
 
             # Build Frontend image
-            docker build -t localhost:32000/assignment-grader-frontend:$IMAGE_TAG \
-              -t localhost:32000/assignment-grader-frontend:latest \
+            docker build -t assignment-grader-frontend:$IMAGE_TAG \
               -f apps/frontend/Dockerfile \
               apps/frontend/
 
-            # Push images to MicroK8s registry
-            echo "📤 Pushing images to MicroK8s registry..."
-            docker push localhost:32000/assignment-grader-api:$IMAGE_TAG
-            docker push localhost:32000/assignment-grader-api:latest
-            docker push localhost:32000/assignment-grader-worker:$IMAGE_TAG
-            docker push localhost:32000/assignment-grader-worker:latest
-            docker push localhost:32000/assignment-grader-frontend:$IMAGE_TAG
-            docker push localhost:32000/assignment-grader-frontend:latest
+            # Import images into MicroK8s containerd (no registry needed!)
+            echo "📤 Importing images into MicroK8s..."
+
+            # Save and import API image
+            docker save assignment-grader-api:$IMAGE_TAG | microk8s ctr image import -
+
+            # Save and import Worker image
+            docker save assignment-grader-worker:$IMAGE_TAG | microk8s ctr image import -
+
+            # Save and import Frontend image
+            docker save assignment-grader-frontend:$IMAGE_TAG | microk8s ctr image import -
+
+            echo "✅ Images imported successfully"
 
             # Update Helm dependencies
             echo "📦 Updating Helm dependencies..."
@@ -96,12 +99,20 @@ jobs:
               -f ./helm/assignment-grader/values-microk8s.yaml \
               --namespace assignment-grader \
               --create-namespace \
+              --set api.image.repository=docker.io/library/assignment-grader-api \
               --set api.image.tag=$IMAGE_TAG \
+              --set api.image.pullPolicy=Never \
+              --set ws.image.repository=docker.io/library/assignment-grader-api \
               --set ws.image.tag=$IMAGE_TAG \
+              --set ws.image.pullPolicy=Never \
+              --set worker.image.repository=docker.io/library/assignment-grader-worker \
               --set worker.image.tag=$IMAGE_TAG \
+              --set worker.image.pullPolicy=Never \
+              --set frontend.image.repository=docker.io/library/assignment-grader-frontend \
               --set frontend.image.tag=$IMAGE_TAG \
+              --set frontend.image.pullPolicy=Never \
               --wait \
-              --timeout 5m
+              --timeout 10m
 
             # Verify deployment
             echo "✅ Verifying deployment..."
