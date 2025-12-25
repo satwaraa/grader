@@ -1,4 +1,4 @@
-import { User } from 'lucide-react';
+import { Download, User } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useParams } from 'react-router-dom';
@@ -39,6 +39,34 @@ const AssignmentSubmissions: React.FC = () => {
 
     const [reEvaluateSubmission] = useReEvaluateSubmissionMutation();
     const [allowResubmission] = useAllowResubmissionMutation();
+
+    const handleExportToExcel = () => {
+        if (!submissions.length) return;
+
+        // Create CSV content
+        const headers = ['ID', 'Name', 'Marks'];
+        const rows = submissions.map((s) => [
+            s.studentUniqueId || '',
+            s.student?.name || 'Unknown',
+            s.score !== null && s.score !== undefined ? s.score.toString() : '',
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Download as CSV (Excel compatible)
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${assignment?.title || 'submissions'}_grades.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     const handleReEvaluate = async (submissionId: string) => {
         try {
@@ -152,13 +180,23 @@ const AssignmentSubmissions: React.FC = () => {
         <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 relative overflow-hidden">
             <MeshBackground />
             <div className="max-w-7xl mx-auto">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">
-                        {assignment?.title || 'Assignment Submissions'}
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        {submissions.length} submissions received
-                    </p>
+                <div className="flex justify-between items-start mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2">
+                            {assignment?.title || 'Assignment Submissions'}
+                        </h1>
+                        <p className="text-gray-600 dark:text-gray-400">
+                            {submissions.length} submissions received
+                        </p>
+                    </div>
+                    {submissions.length > 0 && (
+                        <button
+                            onClick={handleExportToExcel}
+                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            <Download className="h-4 w-4" />
+                            Export to Excel
+                        </button>
+                    )}
                 </div>
 
                 {isLoading ? (
