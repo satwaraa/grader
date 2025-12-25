@@ -28,7 +28,7 @@ RUN bunx prisma generate
 
 # Build API and WebSocket into dist/
 RUN bun build index.ts --outdir dist --target bun
-RUN bun build ws/index.ts --outdir dist/ws --target bun
+RUN bun build ws-server.ts --outdir dist/ws --target bun
 
 # -----------------------------
 # Final Production Image

@@ -8,7 +8,7 @@ let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
 const baseQuery = fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || 'http://141.148.194.201:8600/api',
+    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8600/api',
     prepareHeaders: (headers, { getState }) => {
         const token = (getState() as RootState).auth.token || localStorage.getItem('accessToken');
         if (token) {
@@ -53,7 +53,9 @@ export const baseQueryWithReauth: BaseQueryFn<
                     );
 
                     if (refreshResult.data) {
-                        const data = refreshResult.data as any;
+                        const data = refreshResult.data as {
+                            data?: { accessToken?: string; refreshToken?: string };
+                        };
                         const { accessToken, refreshToken: newRefreshToken } = data.data || {};
 
                         if (accessToken) {
@@ -77,7 +79,7 @@ export const baseQueryWithReauth: BaseQueryFn<
                         api.dispatch(logout());
                         return false;
                     }
-                } catch (e) {
+                } catch {
                     api.dispatch(logout());
                     return false;
                 } finally {

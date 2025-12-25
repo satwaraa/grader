@@ -3,7 +3,7 @@ import { prisma } from "../../lib/prisma";
 export class RubricManager {
     async createRubric(data: {
         name: string;
-        criteria: any; // Json
+        criteria: { name: string; points: number; description: string }[];
         teacherId: string;
     }) {
         return prisma.rubric.create({
@@ -24,7 +24,13 @@ export class RubricManager {
         });
     }
 
-    async updateRubric(id: string, data: { name?: string; criteria?: any }) {
+    async updateRubric(
+        id: string,
+        data: {
+            name?: string;
+            criteria?: { name: string; points: number; description: string }[];
+        },
+    ) {
         return prisma.rubric.update({
             where: { id },
             data,

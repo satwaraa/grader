@@ -1,6 +1,7 @@
 import { AlertCircle, ArrowLeft, CheckCircle, FileText, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import MeshBackground from '../components/MeshBackground';
 import {
     Dialog,
     DialogContent,
@@ -59,7 +60,14 @@ const AssignmentUpload: React.FC = () => {
     useEffect(() => {
         if (!socket) return;
 
-        const handleProgress = (event: any) => {
+        const handleProgress = (event: {
+            error?: string;
+            percent?: number;
+            step?: string;
+            page?: number;
+            total_pages?: number;
+            score?: number;
+        }) => {
             console.log('Progress Event:', event);
 
             if (event.error) {
@@ -165,9 +173,10 @@ const AssignmentUpload: React.FC = () => {
                 // 3. Upload
                 await performUpload(urlData);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const apiError = err as { data?: { message?: string }; error?: string; status?: number };
             console.error('Verification or Upload failed', err);
-            const backendMessage = err?.data?.message || err?.error;
+            const backendMessage = apiError?.data?.message || apiError?.error;
 
             if (backendMessage === 'You can only make One Submission') {
                 setShowOtpDialog(false);
@@ -176,7 +185,7 @@ const AssignmentUpload: React.FC = () => {
                 return;
             }
 
-            if (err?.status === 403 || backendMessage === 'invalid otp') {
+            if (apiError?.status === 403 || backendMessage === 'invalid otp') {
                 setOtpError('Invalid OTP');
             } else {
                 setOtpError('Verification failed. Please try again.');
@@ -219,8 +228,8 @@ const AssignmentUpload: React.FC = () => {
                     } catch (err) {
                         console.error('Failed to mark submission:', err);
                         const message =
-                            (err as any)?.data?.message ||
-                            (err as any)?.message ||
+                            (err as { data?: { message?: string }; message?: string })?.data?.message ||
+                            (err as { message?: string })?.message ||
                             'You cannot submit this assignment again.';
                         setErrorMessage(message);
                         setShowErrorDialog(true);
@@ -262,7 +271,8 @@ const AssignmentUpload: React.FC = () => {
 
     if (isSubmitted) {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-[#030712] flex items-center justify-center px-4">
+            <div className="min-h-screen bg-gray-50 dark:bg-[#030712] flex items-center justify-center px-4 relative overflow-hidden">
+                <MeshBackground />
                 <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl text-center max-w-md w-full border border-gray-200 dark:border-gray-800">
                     <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -314,7 +324,8 @@ const AssignmentUpload: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden">
+            <MeshBackground />
             <div className="max-w-3xl mx-auto">
                 <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
                     <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
@@ -346,7 +357,7 @@ const AssignmentUpload: React.FC = () => {
                                 </h3>
                                 <div className="space-y-3">
                                     {assignment.rubric.criteria.map(
-                                        (criterion: any, index: number) => (
+                                        (criterion: { name: string; description: string; points: number }, index: number) => (
                                             <div
                                                 key={index}
                                                 className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">

@@ -5,6 +5,7 @@ import { AppError, handleError } from "../../utils/apiResponseHandler";
 
 import { prisma } from "../../lib/prisma";
 import { submissionQueue } from "../../utils/queue";
+import { getIO } from "../../ws/socket";
 import { authMiddleware } from "../middleware/auth.middleware";
 import Role from "../types/roles";
 import { catchAsync } from "../utils/catchAsyncWrapper";
@@ -36,13 +37,13 @@ export class SubmissionController {
             "/uploadUrl",
             authMiddleware,
             catchAsync(this.getUploadUrl.bind(this)),
-        ),
-            // Get my submissions (Student)
-            this.router.get(
-                "/my-submissions",
-                authMiddleware,
-                catchAsync(this.getMySubmissions.bind(this)),
-            );
+        );
+        // Get my submissions (Student)
+        this.router.get(
+            "/my-submissions",
+            authMiddleware,
+            catchAsync(this.getMySubmissions.bind(this)),
+        );
 
         // Get submissions for an assignment (Teacher)
         this.router.get(
@@ -55,8 +56,16 @@ export class SubmissionController {
             authMiddleware,
             catchAsync(this.getRecentSubmissions.bind(this)),
         );
-        this.router.post("/reEvaluate", authMiddleware, catchAsync(this.allowRevaluate.bind(this)));
-        this.router.post("/allowResubmission", authMiddleware, catchAsync(this.allowResubmission.bind(this)));
+        this.router.post(
+            "/reEvaluate",
+            authMiddleware,
+            catchAsync(this.allowRevaluate.bind(this)),
+        );
+        this.router.post(
+            "/allowResubmission",
+            authMiddleware,
+            catchAsync(this.allowResubmission.bind(this)),
+        );
     }
 
     private async createSubmission(req: Request, res: Response) {
@@ -78,6 +87,24 @@ export class SubmissionController {
                     removeOnFail: false,
                 });
 
+                // Notify teachers watching this assignment about the new submission
+                try {
+                    const io = getIO();
+                    io.to(`assignment:${assignmentId}`).emit("new-submission", {
+                        assignmentId,
+                        submission: {
+                            id: submission.id,
+                            studentId: submission.studentId,
+                            status: submission.status,
+                            submittedAt: submission.submittedAt,
+                        },
+                    });
+                    console.log(`📡 Notified teachers about new submission for assignment ${assignmentId}`);
+                } catch (socketError) {
+                    // Socket may not be initialized in some contexts (e.g., tests)
+                    console.warn("Could not emit socket event:", socketError);
+                }
+
                 return res
                     .status(201)
                     .json(successResponse(submission, "Submission created successfully"));
@@ -89,7 +116,6 @@ export class SubmissionController {
     }
 
     private async getMySubmissions(req: Request, res: Response) {
-        // @ts-ignore
         const studentId = req.user.id;
         const submissions = await this.submissionManager.getSubmissionsByStudent(
             studentId,
@@ -192,7 +218,12 @@ export class SubmissionController {
             await this.submissionManager.deleteSubmission(submissionId);
             return res
                 .status(200)
-                .json(successResponse(null, "Submission deleted successfully. Student can now resubmit."));
+                .json(
+                    successResponse(
+                        null,
+                        "Submission deleted successfully. Student can now resubmit.",
+                    ),
+                );
         } catch (error) {
             return handleError(res, error);
         }
@@ -222,10 +253,10 @@ export class SubmissionController {
             await this.submissionManager.updateSubmissionGrade(submissionId, {
                 score: 0, // Reset score or keep previous? Resetting seems appropriate for re-evaluation
                 feedback: "",
-                status: "PENDING" as any, // Cast because helper expects GRADED | REVIEWING, but here we revert to PENDING
+                status: "PENDING", // Cast because helper expects GRADED | REVIEWING, but here we revert to PENDING
             });
-             // Wait, updateSubmissionGrade expects GRADED | REVIEWING. I should probably modify it or use prisma directly here to avoid type error and unintended side effects.
-             // Let's use prisma directly for status update to be safe and flexible.
+            // Wait, updateSubmissionGrade expects GRADED | REVIEWING. I should probably modify it or use prisma directly here to avoid type error and unintended side effects.
+            // Let's use prisma directly for status update to be safe and flexible.
 
             await prisma.submission.update({
                 where: { id: submissionId },
@@ -235,7 +266,7 @@ export class SubmissionController {
                     // Let's clear it to indicate re-evaluation is in progress.
                     score: null,
                     feedback: null,
-                }
+                },
             });
 
             // Re-queue the job

@@ -38,9 +38,18 @@ export const initializeSocketIO = (httpServer: HTTPServer) => {
         if (submissionId) {
             try {
                 const event = JSON.parse(message);
+                // Include submissionId in the event for teacher dashboard
+                const eventWithId = { ...event, submissionId };
                 io.to(submissionId).emit("submission-progress", event);
-                // console.log(`Forwarded event to room ${submissionId}:`, event.step);
-            } catch (e) {
+
+                // If event has assignmentId, also emit to assignment room for teachers
+                if (event.assignmentId) {
+                    io.to(`assignment:${event.assignmentId}`).emit(
+                        "assignment-grading-progress",
+                        eventWithId,
+                    );
+                }
+            } catch {
                 console.error("Failed to parse message:", message);
             }
         }

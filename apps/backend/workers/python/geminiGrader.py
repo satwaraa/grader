@@ -53,11 +53,21 @@ try:
     # Create evaluation prompt
     rubric_text = ""
     if rubric:
+        # Handle both formats: rubric can be a list of criteria directly, or a dict with name/criteria
+        if isinstance(rubric, list):
+            # Rubric is a list of criteria
+            criteria_list = rubric
+            rubric_name = "Assignment Rubric"
+        else:
+            # Rubric is a dict with name and criteria
+            criteria_list = rubric.get('criteria', [])
+            rubric_name = rubric.get('name', 'Rubric')
+
         rubric_text = f"""
 === RUBRIC ===
-Name: {rubric.get('name', 'Rubric')}
+Name: {rubric_name}
 Criteria:
-{json.dumps(rubric.get('criteria', []), indent=2)}
+{json.dumps(criteria_list, indent=2)}
 === END RUBRIC ===
 """
 

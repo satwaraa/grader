@@ -45,6 +45,7 @@ const useTypewriter = (
     typingSpeed,
     deletingSpeed,
     pauseTime,
+    typingSpeedState,
   ]);
 
   return displayedText;

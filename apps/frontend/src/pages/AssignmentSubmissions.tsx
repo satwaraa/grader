@@ -1,7 +1,8 @@
 import { User } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useParams } from 'react-router-dom';
+import MeshBackground from '../components/MeshBackground';
 import {
     Dialog,
     DialogContent,
@@ -9,26 +10,29 @@ import {
     DialogHeader,
     DialogTitle,
 } from '../components/ui/dialog';
+import { useSocket } from '../context/SocketContext';
 import {
     useAllowResubmissionMutation,
     useGetAssignmentQuery,
     useGetAssignmentSubmissionsQuery,
     useReEvaluateSubmissionMutation,
 } from '../features/assignments/assignmentApi';
+import type { Submission } from '../types';
 
 const AssignmentSubmissions: React.FC = () => {
     const { assignmentId } = useParams<{ assignmentId: string }>();
-    const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
     const { data: assignmentData } = useGetAssignmentQuery(assignmentId || '', {
         skip: !assignmentId,
     });
-    const { data: submissionsData, isLoading } = useGetAssignmentSubmissionsQuery(
-        assignmentId || '',
-        {
-            skip: !assignmentId,
-        }
-    );
+    const {
+        data: submissionsData,
+        isLoading,
+        refetch: refetchSubmissions,
+    } = useGetAssignmentSubmissionsQuery(assignmentId || '', {
+        skip: !assignmentId,
+    });
 
     const assignment = assignmentData?.data;
     const submissions = submissionsData?.data || [];
@@ -40,7 +44,7 @@ const AssignmentSubmissions: React.FC = () => {
         try {
             await reEvaluateSubmission({ submissionId }).unwrap();
             alert('Submission queued for re-evaluation');
-        } catch (error) {
+        } catch {
             alert('Failed to trigger re-evaluation');
         }
     };
@@ -53,13 +57,100 @@ const AssignmentSubmissions: React.FC = () => {
             await allowResubmission({ submissionId }).unwrap();
             alert('Submission deleted. Student can now resubmit.');
             setSelectedSubmission(null);
-        } catch (error) {
+        } catch {
             alert('Failed to allow resubmission');
         }
     };
 
+    const { socket } = useSocket();
+
+    // Track grading progress for each submission
+    const [gradingProgress, setGradingProgress] = useState<
+        Record<
+            string,
+            {
+                step: string;
+                percent: number;
+                status: 'processing' | 'completed' | 'failed';
+            }
+        >
+    >({});
+
+    // Socket listener for grading progress
+    useEffect(() => {
+        if (!socket || !assignmentId) return;
+
+        const handleGradingProgress = (event: {
+            submissionId: string;
+            step?: string;
+            percent?: number;
+            error?: string;
+            score?: number;
+        }) => {
+            console.log('📡 Grading progress:', event);
+
+            // Map step to user-friendly display status
+            let displayStatus: 'pending' | 'downloading' | 'grading' | 'graded' | 'failed' = 'pending';
+            if (event.error) {
+                displayStatus = 'failed';
+            } else if (event.step === 'grading_completed') {
+                displayStatus = 'graded';
+                // Refetch to get updated data from server
+                refetchSubmissions();
+            } else if (
+                event.step === 'downloading_pdf' ||
+                event.step === 'pdf_downloaded' ||
+                event.step === 'submission_started'
+            ) {
+                displayStatus = 'downloading';
+            } else if (
+                event.step === 'parsing_started' ||
+                event.step === 'page_parsed' ||
+                event.step === 'parsing_completed' ||
+                event.step === 'gemini_started' ||
+                event.step === 'gemini_processing' ||
+                event.step === 'gemini_completed'
+            ) {
+                displayStatus = 'grading';
+            }
+
+            setGradingProgress((prev) => ({
+                ...prev,
+                [event.submissionId]: {
+                    step: displayStatus,
+                    percent: event.percent || 0,
+                    status: event.error
+                        ? 'failed'
+                        : event.step === 'grading_completed'
+                          ? 'completed'
+                          : 'processing',
+                },
+            }));
+        };
+
+        socket.emit('watch-assignment', assignmentId);
+        socket.on('assignment-grading-progress', handleGradingProgress);
+
+        // Listen for new submissions to auto-refresh
+        const handleNewSubmission = (event: { assignmentId: string }) => {
+            console.log('📡 New submission received:', event);
+            if (event.assignmentId === assignmentId) {
+                refetchSubmissions();
+            }
+        };
+
+        socket.on('new-submission', handleNewSubmission);
+
+        return () => {
+            socket.emit('unwatch-assignment', assignmentId);
+            socket.off('assignment-grading-progress', handleGradingProgress);
+            socket.off('new-submission', handleNewSubmission);
+        };
+    }, [socket, assignmentId, refetchSubmissions]);
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 relative overflow-hidden">
+            <MeshBackground />
             <div className="max-w-7xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold mb-2">
@@ -106,14 +197,27 @@ const AssignmentSubmissions: React.FC = () => {
 
                                     <div className="flex items-center gap-4 w-full sm:w-auto">
                                         <div className="text-right">
-                                            <span
-                                                className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                                                    submission.status === 'GRADED'
-                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                                }`}>
-                                                {submission.status}
-                                            </span>
+                                            {gradingProgress[submission.id]?.status === 'processing' ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                                    <span className="text-sm text-indigo-600 dark:text-indigo-400 capitalize">
+                                                        {gradingProgress[submission.id].step || 'Processing'}
+                                                    </span>
+                                                </div>
+                                            ) : gradingProgress[submission.id]?.status === 'failed' ? (
+                                                <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                                    Failed
+                                                </span>
+                                            ) : (
+                                                <span
+                                                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                                                        submission.status === 'GRADED'
+                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                    }`}>
+                                                    {submission.status === 'GRADED' ? 'Graded' : 'Pending'}
+                                                </span>
+                                            )}
                                             {submission.score !== null && (
                                                 <p className="text-sm font-bold mt-1">
                                                     Score: {submission.score}/100
@@ -124,6 +228,18 @@ const AssignmentSubmissions: React.FC = () => {
                                             onClick={() => setSelectedSubmission(submission)}
                                             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
                                             View Summary
+                                        </button>
+                                        <button
+                                            onClick={() => handleReEvaluate(submission.id)}
+                                            className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium transition-colors"
+                                            title="Re-evaluate">
+                                            Re-evaluate
+                                        </button>
+                                        <button
+                                            onClick={() => handleAllowResubmission(submission.id)}
+                                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                                            title="Delete & Allow Resubmission">
+                                            Delete
                                         </button>
                                     </div>
                                 </div>

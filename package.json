@@ -17,10 +17,16 @@
     "docker:clean": "docker-compose down -v --remove-orphans"
   },
   "devDependencies": {
-    "turbo": "^2.3.3"
+    "turbo": "^2.3.3",
+    "@types/bun": "latest"
   },
   "packageManager": "npm@10.2.4",
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "module": "index.ts",
+  "type": "module",
+  "peerDependencies": {
+    "typescript": "^5"
+  }
 }

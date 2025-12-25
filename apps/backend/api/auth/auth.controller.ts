@@ -66,7 +66,7 @@ export class AuthController {
     }
 
     public async getCurrentUser(req: Request, res: Response) {
-        const userId = (req as any).userId;
+        const userId = req.user.id;
 
         const result = await this._authManager.getCurrentUser(userId);
 

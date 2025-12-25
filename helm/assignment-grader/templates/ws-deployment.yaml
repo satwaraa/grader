@@ -1,0 +1,63 @@
+{{- if .Values.tags.ws }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "assignment-grader.fullname" . }}-ws
+  labels:
+    {{- include "assignment-grader.ws.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.ws.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "assignment-grader.ws.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "assignment-grader.ws.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- include "assignment-grader.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: ws
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.ws.image.repository }}:{{ .Values.ws.image.tag }}"
+          imagePullPolicy: {{ .Values.ws.image.pullPolicy }}
+          command: ["bun"]
+          args: ["dist/ws/ws-server.js"]
+          ports:
+            - name: ws
+              containerPort: 9000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "assignment-grader.configMapName" . }}
+            - secretRef:
+                name: {{ include "assignment-grader.secretName" . }}
+          env:
+            - name: PORT
+              value: "9000"
+            - name: REDIS_URL
+              value: {{ include "assignment-grader.redisUrl" . | quote }}
+          livenessProbe:
+            tcpSocket:
+              port: ws
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: ws
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.ws.resources | nindent 12 }}
+      {{- with .Values.ws.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ws.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ws.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

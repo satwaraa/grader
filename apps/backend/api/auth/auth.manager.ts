@@ -6,7 +6,7 @@ interface RegisterInput {
     email: string;
     password: string;
     name: string;
-    role?: "STUDENT" | "TEACHER" | "ADMIN";
+    role: "STUDENT" | "TEACHER";
 }
 
 interface TokenPayload {
@@ -214,7 +214,7 @@ export class authManager {
     verifyAccessToken(token: string): TokenPayload | null {
         try {
             return jwt.verify(token, this.JWT_SECRET) as TokenPayload;
-        } catch (error) {
+        } catch {
             return null;
         }
     }

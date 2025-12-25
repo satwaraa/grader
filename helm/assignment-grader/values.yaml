@@ -1,0 +1,225 @@
+# =============================================================================
+# Assignment Grader Helm Chart - Default Values
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Tags - Enable/disable specific services
+# -----------------------------------------------------------------------------
+tags:
+  api: true
+  ws: true
+  worker: true
+  frontend: true
+
+# -----------------------------------------------------------------------------
+# Global Settings
+# -----------------------------------------------------------------------------
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# -----------------------------------------------------------------------------
+# Common Configuration
+# -----------------------------------------------------------------------------
+nameOverride: ""
+fullnameOverride: ""
+
+# -----------------------------------------------------------------------------
+# API Service Configuration
+# -----------------------------------------------------------------------------
+api:
+  replicaCount: 1
+
+  image:
+    repository: assignment-grader-api
+    tag: v0.1.0
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8600
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# WebSocket Service Configuration
+# -----------------------------------------------------------------------------
+ws:
+  replicaCount: 1
+
+  image:
+    repository: assignment-grader-api
+    tag: v0.1.0
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 9000
+
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Worker Service Configuration
+# -----------------------------------------------------------------------------
+worker:
+  replicaCount: 1
+
+  image:
+    repository: assignment-grader-worker
+    tag: v0.1.0
+    pullPolicy: IfNotPresent
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Frontend Service Configuration
+# -----------------------------------------------------------------------------
+frontend:
+  replicaCount: 1
+
+  image:
+    repository: assignment-grader-frontend
+    tag: v0.1.0
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 5173
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Ingress Configuration
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+        - path: /api
+          pathType: Prefix
+          service: api
+        - path: /ws
+          pathType: Prefix
+          service: ws
+  tls: []
+
+# -----------------------------------------------------------------------------
+# Environment Configuration
+# -----------------------------------------------------------------------------
+env:
+  nodeEnv: production
+
+  # R2/S3 Storage Configuration
+  accessKeyId: ""
+  secretAccessKey: ""
+  bucketName: ""
+  r2Endpoint: ""
+  publicEndpoint: ""
+
+  # Gemini API Key (for worker)
+  geminiApiKey: ""
+
+# -----------------------------------------------------------------------------
+# Secrets - Create external secrets or use existing ones
+# -----------------------------------------------------------------------------
+secrets:
+  # If true, creates a Secret with values from env section
+  create: true
+  # Name of existing secret to use (if create is false)
+  existingSecret: ""
+
+# -----------------------------------------------------------------------------
+# ConfigMap Configuration
+# -----------------------------------------------------------------------------
+configMap:
+  create: true
+
+# -----------------------------------------------------------------------------
+# PostgreSQL Configuration (Bitnami Subchart)
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  auth:
+    username: grader
+    password: graderpassword
+    database: assignment_grader
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# -----------------------------------------------------------------------------
+# Redis Configuration (Bitnami Subchart)
+# -----------------------------------------------------------------------------
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 300m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi

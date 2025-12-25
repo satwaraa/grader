@@ -1,8 +1,9 @@
 import { Award, BarChart3, FileText, FolderClock, Plus, Search, Share2, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../app/store';
+import MeshBackground from '../components/MeshBackground';
 import RubricManager from '../components/RubricManager';
 import {
     Dialog,
@@ -11,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '../components/ui/dialog';
+import { useSocket } from '../context/SocketContext';
 import {
     useAllowResubmissionMutation,
     useCreateAssignmentMutation,
@@ -20,22 +22,42 @@ import {
 } from '../features/assignments/assignmentApi';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import { useGetRubricsQuery } from '../features/rubrics/rubricApi';
+import type { Submission } from '../types';
 
 const Dashboard: React.FC = () => {
     const user = useAppSelector(selectCurrentUser);
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isRubricManagerOpen, setIsRubricManagerOpen] = useState(false);
-    const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
     const isTeacher = user?.role === 'TEACHER';
+    const { socket } = useSocket();
+
+    // Track grading progress for each submission
+    const [gradingProgress, setGradingProgress] = useState<
+        Record<
+            string,
+            {
+                step: string;
+                percent: number;
+                status: 'processing' | 'completed' | 'failed';
+            }
+        >
+    >({});
 
     // API Hooks
-    const { data: assignmentsData, isLoading: isAssignmentsLoading } =
-        useGetTeacherAssignmentsQuery(undefined, {
-            skip: !isTeacher,
-        });
-    const { data: submissionsData, isLoading: isSubmissionsLoading } =
-        useGetRecentSubmissionsQuery();
+    const {
+        data: assignmentsData,
+        isLoading: isAssignmentsLoading,
+        refetch: refetchAssignments,
+    } = useGetTeacherAssignmentsQuery(undefined, {
+        skip: !isTeacher,
+    });
+    const {
+        data: submissionsData,
+        isLoading: isSubmissionsLoading,
+        refetch: refetchSubmissions,
+    } = useGetRecentSubmissionsQuery();
     const { data: rubricsData } = useGetRubricsQuery(undefined, { skip: !isTeacher });
     const [createAssignment, { isLoading: isCreating }] = useCreateAssignmentMutation();
     const [reEvaluateSubmission] = useReEvaluateSubmissionMutation();
@@ -47,6 +69,97 @@ const Dashboard: React.FC = () => {
     const [dueDate, setDueDate] = useState('');
     const [maxScore, setMaxScore] = useState('100');
     const [selectedRubricId, setSelectedRubricId] = useState<string>('');
+
+    const activeAssignments = useMemo(
+        () => assignmentsData?.data || [],
+        [assignmentsData?.data],
+    );
+
+    // Socket listener for grading progress (teachers only)
+    useEffect(() => {
+        if (!socket || !isTeacher) return;
+
+        const handleGradingProgress = (event: {
+            submissionId: string;
+            step?: string;
+            percent?: number;
+            error?: string;
+            score?: number;
+        }) => {
+            console.log('📡 Grading progress:', event);
+
+            // Map step to user-friendly display status
+            let displayStatus: 'pending' | 'downloading' | 'grading' | 'graded' | 'failed' = 'pending';
+            if (event.error) {
+                displayStatus = 'failed';
+            } else if (event.step === 'grading_completed') {
+                displayStatus = 'graded';
+                // Refetch to get updated data from server
+                refetchSubmissions();
+                refetchAssignments();
+            } else if (
+                event.step === 'downloading_pdf' ||
+                event.step === 'pdf_downloaded' ||
+                event.step === 'submission_started'
+            ) {
+                displayStatus = 'downloading';
+            } else if (
+                event.step === 'parsing_started' ||
+                event.step === 'page_parsed' ||
+                event.step === 'parsing_completed' ||
+                event.step === 'gemini_started' ||
+                event.step === 'gemini_processing' ||
+                event.step === 'gemini_completed'
+            ) {
+                displayStatus = 'grading';
+            }
+
+            setGradingProgress((prev) => ({
+                ...prev,
+                [event.submissionId]: {
+                    step: displayStatus,
+                    percent: event.percent || 0,
+                    status: event.error
+                        ? 'failed'
+                        : event.step === 'grading_completed'
+                          ? 'completed'
+                          : 'processing',
+                },
+            }));
+        };
+
+        socket.on('assignment-grading-progress', handleGradingProgress);
+
+        // Listen for new submissions to auto-refresh
+        const handleNewSubmission = (event: { assignmentId: string }) => {
+            console.log('📡 New submission received:', event);
+            // Refetch both assignments (for count) and submissions
+            refetchAssignments();
+            refetchSubmissions();
+        };
+
+        socket.on('new-submission', handleNewSubmission);
+
+        return () => {
+            socket.off('assignment-grading-progress', handleGradingProgress);
+            socket.off('new-submission', handleNewSubmission);
+        };
+    }, [socket, isTeacher, refetchAssignments, refetchSubmissions]);
+
+    // Watch all active assignments for grading updates (teachers only)
+    useEffect(() => {
+        if (!socket || !isTeacher || !activeAssignments.length) return;
+
+        activeAssignments.forEach((assignment) => {
+            socket.emit('watch-assignment', assignment.id);
+        });
+
+        return () => {
+            activeAssignments.forEach((assignment) => {
+                socket.emit('unwatch-assignment', assignment.id);
+            });
+        };
+    }, [socket, isTeacher, activeAssignments]);
 
     const handleCreateAssignment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -103,14 +216,11 @@ const Dashboard: React.FC = () => {
                 alert(`Link copied: ${link}`);
             } else {
                 // As a last resort, show the link so the user can copy manually
-                // prompt is intentionally used sparingly, but works as a fallback
-                // eslint-disable-next-line no-alert
                 window.prompt('Copy this link', link);
             }
         } catch (err) {
             console.error('Failed to copy link', err);
             // Final fallback
-            // eslint-disable-next-line no-alert
             window.prompt('Copy this link', link);
         }
     };
@@ -119,7 +229,7 @@ const Dashboard: React.FC = () => {
         try {
             await reEvaluateSubmission({ submissionId }).unwrap();
             alert('Submission queued for re-evaluation');
-        } catch (error) {
+        } catch  {
             alert('Failed to trigger re-evaluation');
         }
     };
@@ -132,12 +242,11 @@ const Dashboard: React.FC = () => {
             await allowResubmission({ submissionId }).unwrap();
             alert('Submission deleted. Student can now resubmit.');
             setSelectedSubmission(null);
-        } catch (error) {
+        } catch  {
             alert('Failed to allow resubmission');
         }
     };
 
-    const activeAssignments = assignmentsData?.data || [];
     const recentSubmissions = submissionsData?.data || [];
 
     // Calculate stats
@@ -156,7 +265,9 @@ const Dashboard: React.FC = () => {
             : 0;
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 transition-colors duration-300 relative">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#030712] text-gray-900 dark:text-gray-100 px-4 py-8 transition-colors duration-300 relative overflow-hidden">
+            {/* Mesh Background */}
+            <MeshBackground />
             {/* Rubric Manager Modal */}
             {isRubricManagerOpen && <RubricManager onClose={() => setIsRubricManagerOpen(false)} />}
 
@@ -276,7 +387,7 @@ const Dashboard: React.FC = () => {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-indigo-900/40 dark:to-indigo-900/10 border border-gray-200 dark:border-indigo-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="bg-white dark:bg-gray-900/60 dark:backdrop-blur-sm border border-gray-200 dark:border-indigo-500/30 p-6 rounded-2xl shadow-sm dark:shadow-[0_0_30px_-10px_rgba(99,102,241,0.3)]">
                         <div className="flex items-center gap-4 mb-2">
                             <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg">
                                 <FolderClock className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
@@ -289,7 +400,7 @@ const Dashboard: React.FC = () => {
                             {pendingCount}
                         </p>
                     </div>
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-emerald-900/40 dark:to-emerald-900/10 border border-gray-200 dark:border-emerald-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="bg-white dark:bg-gray-900/60 dark:backdrop-blur-sm border border-gray-200 dark:border-emerald-500/30 p-6 rounded-2xl shadow-sm dark:shadow-[0_0_30px_-10px_rgba(16,185,129,0.3)]">
                         <div className="flex items-center gap-4 mb-2">
                             <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
                                 <Award className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
@@ -302,7 +413,7 @@ const Dashboard: React.FC = () => {
                             {gradedCount}
                         </p>
                     </div>
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-purple-900/40 dark:to-purple-900/10 border border-gray-200 dark:border-purple-500/20 p-6 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="bg-white dark:bg-gray-900/60 dark:backdrop-blur-sm border border-gray-200 dark:border-purple-500/30 p-6 rounded-2xl shadow-sm dark:shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]">
                         <div className="flex items-center gap-4 mb-2">
                             <div className="p-2 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
                                 <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -483,17 +594,28 @@ const Dashboard: React.FC = () => {
                                                 {new Date(item.submittedAt).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span
-                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                              ${
-                                  item.status === 'GRADED'
-                                      ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
-                                      : item.status === 'PENDING'
-                                      ? 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/20'
-                                      : 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20'
-                              }`}>
-                                                    {item.status}
-                                                </span>
+                                                {gradingProgress[item.id]?.status === 'processing' ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                                        <span className="text-sm text-indigo-600 dark:text-indigo-400 capitalize">
+                                                            {gradingProgress[item.id].step || 'Processing'}
+                                                        </span>
+                                                    </div>
+                                                ) : gradingProgress[item.id]?.status === 'failed' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/20">
+                                                        Failed
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                                  ${
+                                      item.status === 'GRADED'
+                                          ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+                                          : 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/20'
+                                  }`}>
+                                                        {item.status === 'GRADED' ? 'Graded' : 'Pending'}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 {item.score !== null ? `${item.score}/100` : '-'}

@@ -55,7 +55,7 @@ export class AssignmentController {
                 .json(errorResponse("Only teachers can create assignments"));
         }
 
-        const otp = generateNumericOTP(6);
+        const otp = generateNumericOTP(4);
 
         const assignment = await this.assignmentManager.createAssignment({
             title,

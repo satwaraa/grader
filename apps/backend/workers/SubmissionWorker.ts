@@ -45,7 +45,12 @@ interface GeminiEvaluation {
     raw_response?: string;
 }
 
-function runPython(submissionId: string, filePath: string): Promise<ParsedPage[]> {
+function runPython(
+    submissionId: string,
+    filePath: string,
+    assignmentId: string,
+    studentId: string,
+): Promise<ParsedPage[]> {
     return new Promise<ParsedPage[]>((resolve, reject) => {
         const script = path.join(__dirname, "python", "pdfParser.py");
         let extractedData: ParsedPage[] = [];
@@ -60,15 +65,17 @@ function runPython(submissionId: string, filePath: string): Promise<ParsedPage[]
 
             try {
                 const msg = JSON.parse(output);
-                console.log(`📤 Publishing event:`, msg);
+                // Inject assignmentId and studentId for teacher dashboard
+                const enrichedMsg = { ...msg, assignmentId, studentId };
+                console.log(`📤 Publishing event:`, enrichedMsg);
 
                 // Store extracted data when parsing is completed
                 if (msg.step === "parsing_completed" && msg.result) {
                     extractedData = msg.result;
                 }
 
-                redis.publish(`submission:${submissionId}`, JSON.stringify(msg));
-            } catch (err) {
+                redis.publish(`submission:${submissionId}`, JSON.stringify(enrichedMsg));
+            } catch {
                 console.log(`⚠️  Non-JSON output (ignored): ${output}`);
             }
         });
@@ -95,7 +102,11 @@ function runGeminiGrader(
     extractedData: ParsedPage[],
     assignmentId: string,
     submissionId: string,
-    context: { rubric?: any; description?: string } = {},
+    studentId: string,
+    context: {
+        rubric?: { name: string; points: number; description: string }[];
+        description?: string;
+    } = {},
 ): Promise<GeminiEvaluation> {
     return new Promise<GeminiEvaluation>((resolve, reject) => {
         const script = path.join(__dirname, "python", "geminiGrader.py");
@@ -130,15 +141,17 @@ function runGeminiGrader(
 
             try {
                 const msg = JSON.parse(output);
-                console.log(`📤 Publishing event:`, msg);
+                // Inject assignmentId and studentId for teacher dashboard
+                const enrichedMsg = { ...msg, assignmentId, studentId };
+                console.log(`📤 Publishing event:`, enrichedMsg);
 
                 // Store evaluation when Gemini completes
                 if (msg.step === "gemini_completed" && msg.evaluation) {
                     evaluation = msg.evaluation;
                 }
 
-                redis.publish(`submission:${submissionId}`, JSON.stringify(msg));
-            } catch (err) {
+                redis.publish(`submission:${submissionId}`, JSON.stringify(enrichedMsg));
+            } catch {
                 console.log(`⚠️  Non-JSON output (ignored): ${output}`);
             }
         });
@@ -176,6 +189,8 @@ const worker = new Worker<SubmissionJobData>(
             JSON.stringify({
                 step: "submission_started",
                 percent: 5,
+                assignmentId,
+                studentId,
             }),
         );
 
@@ -199,6 +214,8 @@ const worker = new Worker<SubmissionJobData>(
                 JSON.stringify({
                     step: "downloading_pdf",
                     percent: 5,
+                    assignmentId,
+                    studentId,
                 }),
             );
 
@@ -212,6 +229,8 @@ const worker = new Worker<SubmissionJobData>(
                 JSON.stringify({
                     step: "pdf_downloaded",
                     percent: 10,
+                    assignmentId,
+                    studentId,
                 }),
             );
 
@@ -219,7 +238,7 @@ const worker = new Worker<SubmissionJobData>(
 
             // Step 1: Parse PDF with Python
             console.log(`🚀 Starting Python PDF parser...`);
-            const extractedData = await runPython(id, pdfPath);
+            const extractedData = await runPython(id, pdfPath, assignmentId, studentId);
             console.log(
                 `✅ PDF parsing completed. Extracted ${extractedData.length} pages`,
             );
@@ -239,8 +258,20 @@ const worker = new Worker<SubmissionJobData>(
                 throw new Error(`Assignment not found: ${assignmentId}`);
             }
 
+            // Transform rubric to the expected array format if present
+            let formattedRubric:
+                | { name: string; points: number; description: string }[]
+                | undefined = undefined;
+            if (assignment.rubric && Array.isArray(assignment.rubric.criteria)) {
+                formattedRubric = (assignment.rubric.criteria as { name: string; points: number; description: string }[]).map((c) => ({
+                    name: c.name,
+                    points: c.points,
+                    description: c.description,
+                }));
+            }
+
             const context = {
-                rubric: assignment.rubric || undefined,
+                rubric: formattedRubric,
                 description: assignment.description || undefined,
             };
 
@@ -248,6 +279,7 @@ const worker = new Worker<SubmissionJobData>(
                 extractedData,
                 assignmentId,
                 id,
+                studentId,
                 context,
             );
             console.log(`✅ Gemini grading completed. Score: ${evaluation.score}/100`);
@@ -295,6 +327,8 @@ ${evaluation.feedback}
                     percent: 100,
                     score: evaluation.score,
                     status: "GRADED",
+                    assignmentId,
+                    studentId,
                 }),
             );
 
@@ -311,6 +345,8 @@ ${evaluation.feedback}
                 JSON.stringify({
                     error: error.message || "Unknown error occurred during grading",
                     step: "failed",
+                    assignmentId,
+                    studentId,
                 }),
             );
 

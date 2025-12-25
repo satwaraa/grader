@@ -61,6 +61,18 @@ export const submissionHandlers = (socket: Socket) => {
         socket.join(submissionId);
         console.log(`Socket ${socket.id} watching submission ${submissionId}`);
     });
+
+    // Teacher: Watch all submissions for an assignment
+    socket.on("watch-assignment", (assignmentId: string) => {
+        socket.join(`assignment:${assignmentId}`);
+        console.log(`Socket ${socket.id} watching assignment ${assignmentId}`);
+    });
+
+    // Teacher: Stop watching an assignment
+    socket.on("unwatch-assignment", (assignmentId: string) => {
+        socket.leave(`assignment:${assignmentId}`);
+        console.log(`Socket ${socket.id} stopped watching assignment ${assignmentId}`);
+    });
 };
 
 export default {

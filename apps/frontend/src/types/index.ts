@@ -84,6 +84,7 @@ export interface Submission {
     gradedAt?: string;
     studentId: string;
     assignmentId: string;
+    public_url:string;
     student?: {
         name: string;
         email: string;

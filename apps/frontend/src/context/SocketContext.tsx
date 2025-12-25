@@ -8,6 +8,7 @@ interface SocketContextType {
 
 const SocketContext = createContext<SocketContextType>({ socket: null, isConnected: false });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -15,8 +16,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Assuming backend is on port 8600 based on backend/index.ts
-        const socketInstance = io('http://141.148.194.201:8600', {
+        // Use VITE_WS_URL or VITE_API_URL, fallback to localhost in development
+        const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:8600';
+        const socketInstance = io(wsUrl, {
             withCredentials: true,
             transports: ['websocket'],
         });
@@ -31,6 +33,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setIsConnected(false);
         });
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSocket(socketInstance);
 
         return () => {

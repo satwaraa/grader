@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { authManager } from "../auth/auth.manager";
+import type Role from "../types/roles";
 
 const authManagerInstance = new authManager();
 
@@ -25,18 +26,14 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
         }
 
         // Attach user info to request
-        (req as any).userId = decoded.userId;
-        (req as any).userEmail = decoded.email;
-        (req as any).userRole = decoded.role;
-
-        (req as any).user = {
+        req.user = {
             id: decoded.userId,
             email: decoded.email,
-            role: decoded.role,
+            role: decoded.role as Role,
         };
 
         next();
-    } catch (error) {
+    } catch {
         return res.status(401).json({
             success: false,
             message: "Authentication failed",
@@ -46,7 +43,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
 export const requireRole = (...roles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        const userRole = (req as any).userRole;
+        const userRole = req.user.role;
 
         if (!roles.includes(userRole)) {
             return res.status(403).json({
