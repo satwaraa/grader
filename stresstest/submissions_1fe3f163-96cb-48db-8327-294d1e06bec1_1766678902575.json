@@ -1,0 +1,50 @@
+{
+  "assignmentId": "1fe3f163-96cb-48db-8327-294d1e06bec1",
+  "total": 10,
+  "successful": 10,
+  "failed": 0,
+  "duration": "16.80s",
+  "submissions": [
+    {
+      "userEmail": "stresstest_student_0_1766678375853@test.com",
+      "submissionId": "f5ecb434-77f5-410a-a572-a633afcb1ef5"
+    },
+    {
+      "userEmail": "stresstest_student_1_1766678375855@test.com",
+      "submissionId": "7fa76cec-1735-4752-b120-acfd548a6b86"
+    },
+    {
+      "userEmail": "stresstest_student_2_1766678375855@test.com",
+      "submissionId": "23dd12cd-e128-4c64-aa18-ddb3d5187444"
+    },
+    {
+      "userEmail": "stresstest_student_3_1766678375855@test.com",
+      "submissionId": "aac74dd7-5dc1-4341-8d9b-ea3e6c8740a2"
+    },
+    {
+      "userEmail": "stresstest_student_4_1766678375855@test.com",
+      "submissionId": "7fc5519b-6982-451d-8463-d85508b6c199"
+    },
+    {
+      "userEmail": "stresstest_student_5_1766678375855@test.com",
+      "submissionId": "7c64640e-3ce3-4ef1-a52d-6fe00c6c3565"
+    },
+    {
+      "userEmail": "stresstest_student_6_1766678375855@test.com",
+      "submissionId": "9ad8045a-4fb3-4e48-b221-2c03eca45e67"
+    },
+    {
+      "userEmail": "stresstest_student_7_1766678375855@test.com",
+      "submissionId": "5e964fb2-93f5-4406-a577-c26a16636ec8"
+    },
+    {
+      "userEmail": "stresstest_student_8_1766678375855@test.com",
+      "submissionId": "34cf73e7-3b5f-48ec-b409-981356193c0f"
+    },
+    {
+      "userEmail": "stresstest_student_9_1766678375855@test.com",
+      "submissionId": "a209a12e-b556-41cd-a5f3-96eaff39ba2f"
+    }
+  ],
+  "errors": []
+}

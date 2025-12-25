@@ -375,7 +375,7 @@ ${evaluation.feedback}
     },
     {
         connection: redis,
-        concurrency: 5,
+        concurrency: 1,
     },
 );
 
