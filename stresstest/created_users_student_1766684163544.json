@@ -1,0 +1,407 @@
+{
+  "role": "STUDENT",
+  "count": 100,
+  "defaultPassword": "stresstest123",
+  "users": [
+    {
+      "email": "stresstest_student_0_1766684152007@test.com",
+      "id": "5a54dd8a-e9ee-42f2-a36d-4e3d4e8ed80c"
+    },
+    {
+      "email": "stresstest_student_1_1766684152008@test.com",
+      "id": "9789e0fd-0eaf-4fb3-ba0c-ee269b40d828"
+    },
+    {
+      "email": "stresstest_student_2_1766684152008@test.com",
+      "id": "629cba3c-5cc2-4c54-a4ba-0b348134efca"
+    },
+    {
+      "email": "stresstest_student_3_1766684152008@test.com",
+      "id": "0522f66c-4206-4619-b419-07ff149c8b24"
+    },
+    {
+      "email": "stresstest_student_4_1766684152008@test.com",
+      "id": "066d9489-681c-4617-9bbc-409e0cc2ab07"
+    },
+    {
+      "email": "stresstest_student_5_1766684152008@test.com",
+      "id": "48f713a6-0678-4812-a578-b2352d813110"
+    },
+    {
+      "email": "stresstest_student_6_1766684152008@test.com",
+      "id": "7bdd90f6-e7d8-4a3b-9f75-532028229018"
+    },
+    {
+      "email": "stresstest_student_7_1766684152008@test.com",
+      "id": "1ed5792b-ce51-4304-acaa-33bd38136d08"
+    },
+    {
+      "email": "stresstest_student_8_1766684152008@test.com",
+      "id": "50d2517a-181c-4ff5-b1fc-1be6a165b395"
+    },
+    {
+      "email": "stresstest_student_9_1766684152008@test.com",
+      "id": "13c78ab3-9285-48a4-a991-876aeef37301"
+    },
+    {
+      "email": "stresstest_student_10_1766684153754@test.com",
+      "id": "d83e8b78-4961-40bf-bdb7-47026bbd6663"
+    },
+    {
+      "email": "stresstest_student_11_1766684153754@test.com",
+      "id": "d95137ca-3585-488e-b0a1-d7148b9f9555"
+    },
+    {
+      "email": "stresstest_student_12_1766684153754@test.com",
+      "id": "e2299f83-72c6-4e8f-85b3-0711a16fdd12"
+    },
+    {
+      "email": "stresstest_student_13_1766684153754@test.com",
+      "id": "b349a2ae-35f4-4a46-854e-95f0b6d0e093"
+    },
+    {
+      "email": "stresstest_student_14_1766684153754@test.com",
+      "id": "c46f0c6d-6953-412c-b58d-bd0d40f205fc"
+    },
+    {
+      "email": "stresstest_student_15_1766684153754@test.com",
+      "id": "78016fd4-9621-4d31-9d2a-f4c15bdbcfbf"
+    },
+    {
+      "email": "stresstest_student_16_1766684153754@test.com",
+      "id": "2b7309b4-da51-4036-9d29-6f8558a1952e"
+    },
+    {
+      "email": "stresstest_student_17_1766684153754@test.com",
+      "id": "b797445f-80c3-4cf6-baf3-eaed27e3e1ef"
+    },
+    {
+      "email": "stresstest_student_18_1766684153754@test.com",
+      "id": "59cc1e17-9583-432f-8428-f2b6a4a577df"
+    },
+    {
+      "email": "stresstest_student_19_1766684153754@test.com",
+      "id": "5d5bf841-360b-4a18-b165-4dd1002bc1bf"
+    },
+    {
+      "email": "stresstest_student_20_1766684154907@test.com",
+      "id": "70806d7b-e66e-444b-a315-9b1f688ce283"
+    },
+    {
+      "email": "stresstest_student_21_1766684154907@test.com",
+      "id": "9e78a83a-b193-4312-bfac-b6f08905c4d0"
+    },
+    {
+      "email": "stresstest_student_22_1766684154907@test.com",
+      "id": "6a77e021-cfc6-49df-bfbc-5e6d566343c7"
+    },
+    {
+      "email": "stresstest_student_23_1766684154907@test.com",
+      "id": "e01b357b-114e-4a71-9a90-77d99e45e3bf"
+    },
+    {
+      "email": "stresstest_student_24_1766684154907@test.com",
+      "id": "594a897c-fb87-497e-8fa7-6f073663e9cf"
+    },
+    {
+      "email": "stresstest_student_25_1766684154907@test.com",
+      "id": "e06be5d9-85dc-4be6-b9de-1a3b664b13de"
+    },
+    {
+      "email": "stresstest_student_26_1766684154907@test.com",
+      "id": "d96e89e3-8ae8-4cb6-aac0-6a4fadb78b64"
+    },
+    {
+      "email": "stresstest_student_27_1766684154907@test.com",
+      "id": "1305f0c7-f922-408b-96ce-704713232a74"
+    },
+    {
+      "email": "stresstest_student_28_1766684154907@test.com",
+      "id": "2b48173c-2fa8-44e5-9bd4-de824ccde107"
+    },
+    {
+      "email": "stresstest_student_29_1766684154907@test.com",
+      "id": "f2ce5ae4-d375-4da0-afe2-db5085c105ac"
+    },
+    {
+      "email": "stresstest_student_30_1766684156005@test.com",
+      "id": "6bf28636-5cdd-4216-bcef-cf7261b9cf3c"
+    },
+    {
+      "email": "stresstest_student_31_1766684156005@test.com",
+      "id": "b2cf4869-5e01-49e5-a44f-60086e7acb3d"
+    },
+    {
+      "email": "stresstest_student_32_1766684156005@test.com",
+      "id": "94dcf850-0ecd-43bd-971d-687d3e124343"
+    },
+    {
+      "email": "stresstest_student_33_1766684156005@test.com",
+      "id": "a5519c76-68b4-4725-8f21-29a85eff1916"
+    },
+    {
+      "email": "stresstest_student_34_1766684156005@test.com",
+      "id": "0efe6c43-3285-42f9-9de7-c3d054a508a6"
+    },
+    {
+      "email": "stresstest_student_35_1766684156005@test.com",
+      "id": "1b6d0cc9-9785-4a17-83c3-ee0d5e8c4c9e"
+    },
+    {
+      "email": "stresstest_student_36_1766684156005@test.com",
+      "id": "43f29fef-cb8a-4043-bc40-907df516c9f3"
+    },
+    {
+      "email": "stresstest_student_37_1766684156005@test.com",
+      "id": "70ecc3ed-2dfc-4bd4-84c4-699ae9c2cb1d"
+    },
+    {
+      "email": "stresstest_student_38_1766684156005@test.com",
+      "id": "a0e0b0c6-0b8a-4890-adc1-bc01bc658dd9"
+    },
+    {
+      "email": "stresstest_student_39_1766684156005@test.com",
+      "id": "52290050-f590-4368-b4ff-fad5ae2daa04"
+    },
+    {
+      "email": "stresstest_student_40_1766684157154@test.com",
+      "id": "b2dc123c-2f47-47f0-a808-5233624c208d"
+    },
+    {
+      "email": "stresstest_student_41_1766684157154@test.com",
+      "id": "a02c1903-1545-4b27-ba4c-aa04d93bdb2f"
+    },
+    {
+      "email": "stresstest_student_42_1766684157154@test.com",
+      "id": "8094f67e-cc44-4700-92db-f4ea89ea4473"
+    },
+    {
+      "email": "stresstest_student_43_1766684157154@test.com",
+      "id": "2c5b3f4a-2180-467b-9d23-2644cec3c097"
+    },
+    {
+      "email": "stresstest_student_44_1766684157154@test.com",
+      "id": "52ee7140-6220-434d-b995-00aff36182a7"
+    },
+    {
+      "email": "stresstest_student_45_1766684157154@test.com",
+      "id": "daaf9aed-1287-43a9-a98a-4ee8ec62bab2"
+    },
+    {
+      "email": "stresstest_student_46_1766684157154@test.com",
+      "id": "9b39f053-06dc-4464-acb3-ad0a47fd80af"
+    },
+    {
+      "email": "stresstest_student_47_1766684157154@test.com",
+      "id": "3c08cc6a-0eb0-42c4-8db1-670f6808ef4b"
+    },
+    {
+      "email": "stresstest_student_48_1766684157154@test.com",
+      "id": "d00535e2-9c77-4113-8623-460d95c63562"
+    },
+    {
+      "email": "stresstest_student_49_1766684157154@test.com",
+      "id": "b244d7cd-6c12-4ebe-9bcf-3ae859f512d4"
+    },
+    {
+      "email": "stresstest_student_50_1766684158287@test.com",
+      "id": "0994d58e-68cf-4beb-b640-9c91eb2ff5e9"
+    },
+    {
+      "email": "stresstest_student_51_1766684158288@test.com",
+      "id": "1e21c87e-a607-4e85-a0ea-96fa1c2d731c"
+    },
+    {
+      "email": "stresstest_student_52_1766684158288@test.com",
+      "id": "1b4b5f13-230c-4ccf-a562-128a7c11b79e"
+    },
+    {
+      "email": "stresstest_student_53_1766684158288@test.com",
+      "id": "579f26c4-07ba-441b-bdcb-713f44f5ff89"
+    },
+    {
+      "email": "stresstest_student_54_1766684158288@test.com",
+      "id": "f9c92a4d-90ec-43cc-adc9-908326c4cc1e"
+    },
+    {
+      "email": "stresstest_student_55_1766684158288@test.com",
+      "id": "9b41e45c-2e46-4d91-9ecf-529e9390e8c6"
+    },
+    {
+      "email": "stresstest_student_56_1766684158288@test.com",
+      "id": "e0a1860e-fb8d-40a6-aa66-a4d743871108"
+    },
+    {
+      "email": "stresstest_student_57_1766684158288@test.com",
+      "id": "de20390e-02df-4675-978d-ba77335d5dfd"
+    },
+    {
+      "email": "stresstest_student_58_1766684158288@test.com",
+      "id": "615afe87-c480-453b-b8de-4a264404dc5d"
+    },
+    {
+      "email": "stresstest_student_59_1766684158288@test.com",
+      "id": "e201ddf3-2402-41ed-b4ad-570b6ed278b6"
+    },
+    {
+      "email": "stresstest_student_60_1766684159284@test.com",
+      "id": "e2439398-51b9-4fc0-9642-94e9d8578deb"
+    },
+    {
+      "email": "stresstest_student_61_1766684159284@test.com",
+      "id": "5088bf43-29e1-49ba-8c63-b633b3c3b72a"
+    },
+    {
+      "email": "stresstest_student_62_1766684159284@test.com",
+      "id": "cf7da423-d58e-4929-b77f-95ccbe050fdd"
+    },
+    {
+      "email": "stresstest_student_63_1766684159284@test.com",
+      "id": "98dc4c5b-bbd4-4891-87c9-209b666273f1"
+    },
+    {
+      "email": "stresstest_student_64_1766684159284@test.com",
+      "id": "80dbfa33-26a3-4f03-adc4-b34e845db4a9"
+    },
+    {
+      "email": "stresstest_student_65_1766684159284@test.com",
+      "id": "e3063727-79d6-487a-88a9-9aaf41950d2c"
+    },
+    {
+      "email": "stresstest_student_66_1766684159284@test.com",
+      "id": "2f2205ff-66cc-4d28-83de-8ddfd5109750"
+    },
+    {
+      "email": "stresstest_student_67_1766684159284@test.com",
+      "id": "67786947-f912-4c00-8146-df5c47b542ca"
+    },
+    {
+      "email": "stresstest_student_68_1766684159284@test.com",
+      "id": "256e6e68-afe9-4753-83dc-8bc2fa2431b5"
+    },
+    {
+      "email": "stresstest_student_69_1766684159284@test.com",
+      "id": "7e0dd072-f8bc-4207-a934-a0980cf63953"
+    },
+    {
+      "email": "stresstest_student_70_1766684160283@test.com",
+      "id": "1cedde0b-6bb4-48ef-8295-cb33792ab64e"
+    },
+    {
+      "email": "stresstest_student_71_1766684160283@test.com",
+      "id": "01c1fd71-fef0-46aa-a442-640ad505efb7"
+    },
+    {
+      "email": "stresstest_student_72_1766684160283@test.com",
+      "id": "15d48918-4740-441e-a550-a1389160b4d2"
+    },
+    {
+      "email": "stresstest_student_73_1766684160283@test.com",
+      "id": "d95dc01b-87fe-428c-a1d7-37dc4bea578b"
+    },
+    {
+      "email": "stresstest_student_74_1766684160283@test.com",
+      "id": "44e69c3e-0013-4180-8f5c-247af62f18b5"
+    },
+    {
+      "email": "stresstest_student_75_1766684160283@test.com",
+      "id": "cbfeb430-476d-44fe-8875-e5ea6ee3f748"
+    },
+    {
+      "email": "stresstest_student_76_1766684160283@test.com",
+      "id": "b96b1c5c-4316-41ba-89e7-997cbea5066d"
+    },
+    {
+      "email": "stresstest_student_77_1766684160283@test.com",
+      "id": "5d4d196b-f1a2-49b4-824d-af018cbbd334"
+    },
+    {
+      "email": "stresstest_student_78_1766684160283@test.com",
+      "id": "ac02891d-f1ac-4029-b22f-6c8b9d916784"
+    },
+    {
+      "email": "stresstest_student_79_1766684160283@test.com",
+      "id": "cdde5466-ece3-4a6f-8260-749826677e21"
+    },
+    {
+      "email": "stresstest_student_80_1766684161324@test.com",
+      "id": "75c5f548-72d8-4766-b97d-e1afd22f8182"
+    },
+    {
+      "email": "stresstest_student_81_1766684161324@test.com",
+      "id": "85ae6f73-b9c9-4306-a7f3-05ba0486ce9a"
+    },
+    {
+      "email": "stresstest_student_82_1766684161324@test.com",
+      "id": "ff9c7fa9-5690-48f7-a811-597fcffe0e29"
+    },
+    {
+      "email": "stresstest_student_83_1766684161324@test.com",
+      "id": "4860195f-67ba-47e3-8aee-133f62bc9192"
+    },
+    {
+      "email": "stresstest_student_84_1766684161324@test.com",
+      "id": "6ecdd626-ffbe-44f9-a08b-d5fe58c313f4"
+    },
+    {
+      "email": "stresstest_student_85_1766684161324@test.com",
+      "id": "b8db7e1e-ef4b-43b2-af1d-c56f69283e04"
+    },
+    {
+      "email": "stresstest_student_86_1766684161324@test.com",
+      "id": "037da7e1-ef18-4a99-a8ff-3bb4fd6e9122"
+    },
+    {
+      "email": "stresstest_student_87_1766684161324@test.com",
+      "id": "602cfe67-d96a-43d8-8093-726effc18e40"
+    },
+    {
+      "email": "stresstest_student_88_1766684161324@test.com",
+      "id": "af6a43f2-fdec-44df-97e0-f0b900f97a67"
+    },
+    {
+      "email": "stresstest_student_89_1766684161324@test.com",
+      "id": "e2cd76cd-d22f-4347-8690-8c08e8848d67"
+    },
+    {
+      "email": "stresstest_student_90_1766684162421@test.com",
+      "id": "8f4ee031-e2e6-489c-9fa8-81d838815cc6"
+    },
+    {
+      "email": "stresstest_student_91_1766684162421@test.com",
+      "id": "1c1100f8-2dcb-49c6-b021-c10f8120b1c2"
+    },
+    {
+      "email": "stresstest_student_92_1766684162421@test.com",
+      "id": "e0047713-131f-42f1-95dd-25c66ad5d1d9"
+    },
+    {
+      "email": "stresstest_student_93_1766684162421@test.com",
+      "id": "e37a0253-f170-417a-8a6d-e211a757ab7e"
+    },
+    {
+      "email": "stresstest_student_94_1766684162421@test.com",
+      "id": "2d1ec87f-4038-48b1-bd1c-9d0996199a85"
+    },
+    {
+      "email": "stresstest_student_95_1766684162421@test.com",
+      "id": "5f6ab756-7a7c-4d1e-a7fd-26635a4fd224"
+    },
+    {
+      "email": "stresstest_student_96_1766684162421@test.com",
+      "id": "7a69743f-e58d-46d3-a968-2d9dfadec5ab"
+    },
+    {
+      "email": "stresstest_student_97_1766684162421@test.com",
+      "id": "28dd4149-dfc6-48ea-803a-02367f7a89f3"
+    },
+    {
+      "email": "stresstest_student_98_1766684162421@test.com",
+      "id": "c942eca0-d01c-44cc-9c4f-35c9010f28f0"
+    },
+    {
+      "email": "stresstest_student_99_1766684162421@test.com",
+      "id": "dbbe3c82-475d-4e1e-9a0e-b6def0d87456"
+    }
+  ]
+}

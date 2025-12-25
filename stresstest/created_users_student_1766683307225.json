@@ -1,0 +1,47 @@
+{
+  "role": "STUDENT",
+  "count": 10,
+  "defaultPassword": "stresstest123",
+  "users": [
+    {
+      "email": "stresstest_student_0_1766683300519@test.com",
+      "id": "ca5047f4-57ee-47ab-af29-86a8dd6578fc"
+    },
+    {
+      "email": "stresstest_student_1_1766683300521@test.com",
+      "id": "47a86cb3-4966-4aea-973b-4bdd52cf1597"
+    },
+    {
+      "email": "stresstest_student_2_1766683300521@test.com",
+      "id": "bcaaa651-18e1-45c0-8815-e62cbb84dca7"
+    },
+    {
+      "email": "stresstest_student_3_1766683300521@test.com",
+      "id": "0094e7c7-6038-4efe-b00c-c7633277a084"
+    },
+    {
+      "email": "stresstest_student_4_1766683300521@test.com",
+      "id": "5a6a9698-97bf-435c-aba5-d97c69b07e10"
+    },
+    {
+      "email": "stresstest_student_5_1766683300521@test.com",
+      "id": "fd47b8e9-4b44-4c17-8757-11a8f9c15f2e"
+    },
+    {
+      "email": "stresstest_student_6_1766683300521@test.com",
+      "id": "5e61326f-c3ed-41f0-8e98-0fe9cc5da94b"
+    },
+    {
+      "email": "stresstest_student_7_1766683300521@test.com",
+      "id": "8cd53f09-b16e-41aa-9990-e7a5820d8102"
+    },
+    {
+      "email": "stresstest_student_8_1766683300521@test.com",
+      "id": "b3528653-b2e4-4fa5-8b79-80ae187ef9b9"
+    },
+    {
+      "email": "stresstest_student_9_1766683300521@test.com",
+      "id": "072a38fb-b4eb-49a6-9dd6-5854f2f41bef"
+    }
+  ]
+}

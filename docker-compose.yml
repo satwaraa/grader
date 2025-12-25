@@ -70,7 +70,7 @@ services:
       - redis
     networks:
       - lpu-network
-    command: ["bun", "dist/ws/index.js"]
+    command: ["bun", "dist/ws/ws-server.js"]
 
   worker:
     build:

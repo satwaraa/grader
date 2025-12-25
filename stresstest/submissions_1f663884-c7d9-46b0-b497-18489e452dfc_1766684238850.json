@@ -1,0 +1,210 @@
+{
+  "assignmentId": "1f663884-c7d9-46b0-b497-18489e452dfc",
+  "total": 50,
+  "successful": 50,
+  "failed": 0,
+  "duration": "34.98s",
+  "submissions": [
+    {
+      "userEmail": "stresstest_student_0_1766684152007@test.com",
+      "submissionId": "dbbbdffb-1c5d-4085-829e-c6945a97f3f8"
+    },
+    {
+      "userEmail": "stresstest_student_1_1766684152008@test.com",
+      "submissionId": "ab8f76ad-284e-47c7-8e90-4ff9448ffbd3"
+    },
+    {
+      "userEmail": "stresstest_student_2_1766684152008@test.com",
+      "submissionId": "b5664f88-6475-4d79-bca1-1a077c9e4bd5"
+    },
+    {
+      "userEmail": "stresstest_student_3_1766684152008@test.com",
+      "submissionId": "0c2ff54d-6d7c-495b-b47a-5c4f2e83fd75"
+    },
+    {
+      "userEmail": "stresstest_student_4_1766684152008@test.com",
+      "submissionId": "78b3fc3d-2b19-49fe-9776-fe07bd46e105"
+    },
+    {
+      "userEmail": "stresstest_student_5_1766684152008@test.com",
+      "submissionId": "6e0db041-f623-461e-a82b-03f983ad62a0"
+    },
+    {
+      "userEmail": "stresstest_student_6_1766684152008@test.com",
+      "submissionId": "901b9896-fbd5-4852-89c4-d6cbafe86c16"
+    },
+    {
+      "userEmail": "stresstest_student_7_1766684152008@test.com",
+      "submissionId": "f97f6e95-cb21-4d39-8cb1-bbb812e16e22"
+    },
+    {
+      "userEmail": "stresstest_student_8_1766684152008@test.com",
+      "submissionId": "de37d909-798e-4941-abc5-147370055c1f"
+    },
+    {
+      "userEmail": "stresstest_student_9_1766684152008@test.com",
+      "submissionId": "4718d470-f8b6-419f-9b20-3501c0154645"
+    },
+    {
+      "userEmail": "stresstest_student_10_1766684153754@test.com",
+      "submissionId": "724d0468-ccf5-45d7-b2d4-7f5aa6b4c78a"
+    },
+    {
+      "userEmail": "stresstest_student_11_1766684153754@test.com",
+      "submissionId": "f7e878e4-f095-4107-8bc8-abca8100de66"
+    },
+    {
+      "userEmail": "stresstest_student_12_1766684153754@test.com",
+      "submissionId": "e91782f6-eb12-4279-85ec-993c2b57c5c8"
+    },
+    {
+      "userEmail": "stresstest_student_13_1766684153754@test.com",
+      "submissionId": "8b4e1e46-7195-4824-b0ac-94857eb96040"
+    },
+    {
+      "userEmail": "stresstest_student_14_1766684153754@test.com",
+      "submissionId": "2540324d-e715-4545-bf61-1339665364a6"
+    },
+    {
+      "userEmail": "stresstest_student_15_1766684153754@test.com",
+      "submissionId": "48f982da-9daf-442d-9979-3de73ab99d93"
+    },
+    {
+      "userEmail": "stresstest_student_16_1766684153754@test.com",
+      "submissionId": "ee2243b3-bc62-47c4-95d4-e277a1f6501d"
+    },
+    {
+      "userEmail": "stresstest_student_17_1766684153754@test.com",
+      "submissionId": "8eda2f8c-b6ea-4e2d-8745-bfadaa8174e1"
+    },
+    {
+      "userEmail": "stresstest_student_18_1766684153754@test.com",
+      "submissionId": "5ebab71f-7375-49bb-bcd6-25a7f4eb21bf"
+    },
+    {
+      "userEmail": "stresstest_student_19_1766684153754@test.com",
+      "submissionId": "a65997f6-b53e-4e2f-8ff3-9acc61698f67"
+    },
+    {
+      "userEmail": "stresstest_student_20_1766684154907@test.com",
+      "submissionId": "df63bbb4-1800-436a-8404-676729c9c364"
+    },
+    {
+      "userEmail": "stresstest_student_21_1766684154907@test.com",
+      "submissionId": "5bca84e8-db27-4639-812c-e6fc5791bf78"
+    },
+    {
+      "userEmail": "stresstest_student_22_1766684154907@test.com",
+      "submissionId": "3ba5cec9-3150-4582-b5e6-e2aca794036e"
+    },
+    {
+      "userEmail": "stresstest_student_23_1766684154907@test.com",
+      "submissionId": "b9727fcc-a9fe-4d80-afdc-b2e81ffa2073"
+    },
+    {
+      "userEmail": "stresstest_student_24_1766684154907@test.com",
+      "submissionId": "ae4beb8b-6a85-43a9-b032-37ec9ad9993f"
+    },
+    {
+      "userEmail": "stresstest_student_25_1766684154907@test.com",
+      "submissionId": "316dd386-33a9-445d-b31f-16987624652d"
+    },
+    {
+      "userEmail": "stresstest_student_26_1766684154907@test.com",
+      "submissionId": "69b54c0f-c438-4bc4-9df9-92d3bb2f78c4"
+    },
+    {
+      "userEmail": "stresstest_student_27_1766684154907@test.com",
+      "submissionId": "580e4d7a-eaf3-45c9-a316-2b59be72645e"
+    },
+    {
+      "userEmail": "stresstest_student_28_1766684154907@test.com",
+      "submissionId": "ac4292c0-0324-418f-aec4-19a33372017e"
+    },
+    {
+      "userEmail": "stresstest_student_29_1766684154907@test.com",
+      "submissionId": "fa32df9c-b116-4622-b308-abc7b4c8e99e"
+    },
+    {
+      "userEmail": "stresstest_student_30_1766684156005@test.com",
+      "submissionId": "a208ea79-36f2-471d-96e8-edb86a5e19f8"
+    },
+    {
+      "userEmail": "stresstest_student_31_1766684156005@test.com",
+      "submissionId": "df61aee8-4142-4102-b144-5fe6d033d643"
+    },
+    {
+      "userEmail": "stresstest_student_32_1766684156005@test.com",
+      "submissionId": "12a6b35f-d606-4d48-8ba0-62589c7e72a3"
+    },
+    {
+      "userEmail": "stresstest_student_33_1766684156005@test.com",
+      "submissionId": "68367778-15bc-40bd-b3ed-c9ade069205a"
+    },
+    {
+      "userEmail": "stresstest_student_34_1766684156005@test.com",
+      "submissionId": "974add18-d6e9-4ad2-bdb6-a7355e118833"
+    },
+    {
+      "userEmail": "stresstest_student_35_1766684156005@test.com",
+      "submissionId": "4ca0ba6a-b137-43aa-a329-97b6a75d89f1"
+    },
+    {
+      "userEmail": "stresstest_student_36_1766684156005@test.com",
+      "submissionId": "9521fca6-a48f-4807-b523-f77b3a84342c"
+    },
+    {
+      "userEmail": "stresstest_student_37_1766684156005@test.com",
+      "submissionId": "d66f094b-ddb7-4849-a3a6-aaf7180837af"
+    },
+    {
+      "userEmail": "stresstest_student_38_1766684156005@test.com",
+      "submissionId": "e285b148-c792-4f4a-bc5f-2efb0ce9cb4f"
+    },
+    {
+      "userEmail": "stresstest_student_39_1766684156005@test.com",
+      "submissionId": "b4bc3700-068d-47fa-b437-795c9aacb2c1"
+    },
+    {
+      "userEmail": "stresstest_student_40_1766684157154@test.com",
+      "submissionId": "50713463-0bd3-43e7-bc36-eb628f3569e8"
+    },
+    {
+      "userEmail": "stresstest_student_41_1766684157154@test.com",
+      "submissionId": "c3663d27-b59d-4601-b878-845c48b94575"
+    },
+    {
+      "userEmail": "stresstest_student_42_1766684157154@test.com",
+      "submissionId": "72da2797-d0ec-40e9-989c-f838a0cbc792"
+    },
+    {
+      "userEmail": "stresstest_student_43_1766684157154@test.com",
+      "submissionId": "0e4ca748-4017-452b-bd9c-b3ef9c4ec9b7"
+    },
+    {
+      "userEmail": "stresstest_student_44_1766684157154@test.com",
+      "submissionId": "82502a03-a163-46c5-aae7-3212ff88a0b8"
+    },
+    {
+      "userEmail": "stresstest_student_45_1766684157154@test.com",
+      "submissionId": "be35b7a4-96ea-4433-ac6a-eca43cf6311f"
+    },
+    {
+      "userEmail": "stresstest_student_46_1766684157154@test.com",
+      "submissionId": "32102b49-6c68-4f00-91c3-d5ff31cd7fc3"
+    },
+    {
+      "userEmail": "stresstest_student_47_1766684157154@test.com",
+      "submissionId": "172e787c-07ff-402a-81d3-58bdded4dffa"
+    },
+    {
+      "userEmail": "stresstest_student_48_1766684157154@test.com",
+      "submissionId": "d369d808-bdb5-4404-8496-be26497b03bd"
+    },
+    {
+      "userEmail": "stresstest_student_49_1766684157154@test.com",
+      "submissionId": "1632d140-9d9a-4a2a-8b19-43c01c5761e2"
+    }
+  ],
+  "errors": []
+}
