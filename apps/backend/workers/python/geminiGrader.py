@@ -2,8 +2,11 @@ import sys
 import json
 import os
 import base64
-from google import genai
-from google.genai import types
+from groq import Groq
+
+# Models
+TEXT_MODEL = "llama-3.3-70b-versatile"
+VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 def publish(event):
     """Print JSON event to stdout for Node.js to capture"""
@@ -31,6 +34,43 @@ def load_image_as_base64(image_path):
         publish({"warning": f"Could not load image {image_path}: {str(e)}"})
         return None
 
+def ocr_image_with_groq(client, image_path):
+    """Use Groq vision model to OCR/describe an image so the text-only grader can use it."""
+    image_b64 = load_image_as_base64(image_path)
+    if not image_b64:
+        return None
+    mime_type = get_mime_type(image_path)
+    try:
+        completion = client.chat.completions.create(
+            model=VISION_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Extract ALL text, equations, code, diagrams, charts and handwritten content "
+                                "from this image. Transcribe text verbatim. For diagrams, describe the structure, "
+                                "labels, arrows and relationships. For charts, list axes, data points and trends. "
+                                "Be thorough — the output is the only representation downstream graders will see."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime_type};base64,{image_b64}"},
+                        },
+                    ],
+                }
+            ],
+            temperature=0.1,
+            max_tokens=1500,
+        )
+        return completion.choices[0].message.content or ""
+    except Exception as e:
+        publish({"warning": f"OCR failed for {image_path}: {str(e)}"})
+        return None
+
 # Validate args
 if len(sys.argv) < 4:
     publish({"error": "Missing args. Usage: geminiGrader.py <extracted_data_json> <assignment_id> <submission_id> [context_json]"})
@@ -41,50 +81,39 @@ assignment_id = sys.argv[2]
 submission_id = sys.argv[3]
 context_json = sys.argv[4] if len(sys.argv) > 4 else "{}"
 
-# Get Gemini API key
-api_key = os.getenv("GEMINI_API_KEY")
+# Get Groq API key
+api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
-    publish({"error": "GEMINI_API_KEY not found in environment"})
+    publish({"error": "GROQ_API_KEY not found in environment"})
     sys.exit(1)
 
 publish({"info": f"API key length: {len(api_key)}", "step": "initialization"})
 
 try:
-    # Parse extracted data
     extracted_data = json.loads(extracted_data_json)
     context = json.loads(context_json)
 
     rubric = context.get("rubric")
     description = context.get("description", "")
     title = context.get("title", "Assignment")
-    # Get maxScore from context (assignment's maxScore), fallback to rubric calculation or 100
     context_max_score = context.get("maxScore")
 
-    # Count total images
     total_images = sum(len(page.get('images', [])) for page in extracted_data)
     publish({"info": f"Parsed {len(extracted_data)} pages with {total_images} images", "step": "data_parsed"})
 
-    publish({
-        "step": "gemini_started",
-        "percent": 85
-    })
+    publish({"step": "gemini_started", "percent": 85})
 
-    # Initialize Gemini client
-    publish({"info": "Initializing Gemini client", "step": "client_init"})
-    gemini_client = genai.Client(api_key=api_key)
+    publish({"info": "Initializing Groq client", "step": "client_init"})
+    groq_client = Groq(api_key=api_key)
 
-    # Build content parts with text and images in context
-    content_parts = []
-
-    # Create evaluation prompt header
+    # Build rubric / scoring header
     rubric_text = ""
-    max_score = context_max_score if context_max_score else 100  # Use assignment maxScore if provided
+    max_score = context_max_score if context_max_score else 100
 
-    # Debug: log the maxScore being used
     publish({"info": f"Assignment maxScore from context: {context_max_score}", "step": "debug_maxscore"})
     publish({"info": f"Using max_score: {max_score}", "step": "debug_maxscore"})
+
     if rubric:
-        # Handle both formats: rubric can be a list of criteria directly, or a dict with name/criteria
         if isinstance(rubric, list):
             criteria_list = rubric
             rubric_name = "Assignment Rubric"
@@ -92,7 +121,6 @@ try:
             criteria_list = rubric.get('criteria', [])
             rubric_name = rubric.get('name', 'Rubric')
 
-        # Calculate total points from rubric if maxScore not provided in context
         if not context_max_score:
             rubric_total = sum(c.get('points', 0) for c in criteria_list)
             if rubric_total > 0:
@@ -107,7 +135,9 @@ Criteria:
 === END RUBRIC ===
 """
 
-    prompt_header = f"""You are a STRICT academic assignment evaluator. You grade MODERATELY, not leniently.
+    has_rubric = bool(rubric)
+
+    prompt_parts = [f"""You are an academic assignment evaluator. Grade MODERATELY — not lenient, not harsh.
 
 Assignment ID: {assignment_id}
 Submission ID: {submission_id}
@@ -122,69 +152,57 @@ Submission ID: {submission_id}
 {rubric_text}
 
 GRADING INSTRUCTIONS:
-- You are evaluating if the student submission matches the ASSIGNMENT TITLE and DESCRIPTION above.
-- If the submission is COMPLETELY unrelated to the assignment (e.g., assignment asks for "DevOps Project Synopsis" but student submits a "Resume"), you MUST give a score of 0.
-- Be a MODERATE grader - not lenient, not harsh. Expect quality work that matches the assignment requirements.
-- Do NOT give partial credit for "effort" if the content doesn't match the assignment topic.
+{"- A RUBRIC IS PROVIDED ABOVE. The rubric is the authoritative source of truth for what to evaluate. Grade against the rubric criteria, NOT against your interpretation of the title." if has_rubric else "- No rubric provided. Evaluate against the title and description."}
+- Relevance check: A submission is OFF-TOPIC only if NONE of the rubric criteria can be meaningfully evaluated against it. If even one criterion applies, grade normally — do not zero out.
+- The title may be brief, ambiguous, or contain typos. Do NOT guess what the assignment "really meant" and then mark the student off-topic on that guess. If the rubric clearly applies to the submission, the submission is on-topic.
+- Be MODERATE — expect quality, but reward partial fulfillment of rubric criteria.
+- Do NOT give credit for "effort" alone if the content does not address any rubric criterion.
 
 === STUDENT SUBMISSION ===
-The submission contains {len(extracted_data)} pages. Each page may have text content and/or images (diagrams, figures, handwritten work, etc.).
-You must carefully examine BOTH the text AND images when evaluating the submission.
-Images may contain important information like diagrams, charts, handwritten solutions, or visual elements that are essential to the answer.
+The submission contains {len(extracted_data)} pages. Each page may have text content and/or image-derived transcriptions (diagrams, figures, handwritten work, etc.).
+Image content has been transcribed by a vision model and is included as "[Image N OCR]" blocks. Treat that transcription as authoritative for what the image contains.
+"""]
 
-"""
-    content_parts.append(types.Part.from_text(text=prompt_header))
-
-    # Add each page with its text and images
+    # Per-page: text + OCR each image via Groq vision
     for page in extracted_data:
         page_num = page.get('page_number', 0)
         text = page.get('text', '')
         images = page.get('images', [])
 
-        # Add page header
-        page_header = f"\n--- PAGE {page_num} ---\n"
-        content_parts.append(types.Part.from_text(text=page_header))
+        prompt_parts.append(f"\n--- PAGE {page_num} ---\n")
 
-        # Add text content
         if text.strip():
-            content_parts.append(types.Part.from_text(text=f"[Text Content]:\n{text}\n"))
+            prompt_parts.append(f"[Text Content]:\n{text}\n")
         else:
-            content_parts.append(types.Part.from_text(text="[No text content on this page]\n"))
+            prompt_parts.append("[No text content on this page]\n")
 
-        # Add images with context
         if images:
-            content_parts.append(types.Part.from_text(text=f"\n[This page contains {len(images)} image(s)/figure(s). Please analyze them carefully as they may contain diagrams, charts, handwritten work, or visual solutions:]\n"))
-
+            prompt_parts.append(f"\n[This page contains {len(images)} image(s)/figure(s). OCR transcriptions below:]\n")
             for idx, image_path in enumerate(images):
                 if os.path.exists(image_path):
-                    image_data = load_image_as_base64(image_path)
-                    if image_data:
-                        mime_type = get_mime_type(image_path)
-                        # Add context before image
-                        content_parts.append(types.Part.from_text(text=f"\n[Image {idx + 1} from Page {page_num}]:"))
-                        # Add image as inline data
-                        content_parts.append(types.Part.from_bytes(
-                            data=base64.standard_b64decode(image_data),
-                            mime_type=mime_type
-                        ))
-                        publish({"info": f"Added image {idx + 1} from page {page_num}", "step": "image_loaded"})
+                    publish({"info": f"OCR image {idx + 1} on page {page_num}", "step": "image_ocr"})
+                    ocr_text = ocr_image_with_groq(groq_client, image_path)
+                    if ocr_text:
+                        prompt_parts.append(f"\n[Image {idx + 1} OCR from Page {page_num}]:\n{ocr_text}\n")
+                        publish({"info": f"OCR'd image {idx + 1} from page {page_num}", "step": "image_loaded"})
+                    else:
+                        prompt_parts.append(f"\n[Image {idx + 1} from Page {page_num}]: (OCR unavailable)\n")
                 else:
                     publish({"warning": f"Image file not found: {image_path}"})
         else:
-            content_parts.append(types.Part.from_text(text="[No images on this page]\n"))
+            prompt_parts.append("[No images on this page]\n")
 
-    # Add closing prompt with dynamic max_score
     closing_prompt = f"""
 === END OF SUBMISSION ===
 
 
 EVALUATION INSTRUCTIONS:
 
-STEP 1 - RELEVANCE CHECK (MOST IMPORTANT):
-First, determine if the submission is RELEVANT to the assignment title and description.
+STEP 1 - RELEVANCE CHECK:
 - Assignment Title: "{title}"
-- If the submission is COMPLETELY UNRELATED (e.g., you expected a "DevOps Synopsis" but got a "Resume"), give score = 0.
-- Do NOT be lenient. If content doesn't match the assignment topic, the score is 0.
+- A submission is OFF-TOPIC (score = 0) ONLY if NONE of the rubric criteria can be evaluated against it.
+- If even one rubric criterion applies to the submission, it is ON-TOPIC — proceed to scoring.
+- Titles can be short, ambiguous, or contain typos. Do NOT infer a stricter expected output than the rubric specifies, and do NOT zero a submission just because it "looks like" an off-topic example.
 
 STEP 2 - SCORING:
 *** CRITICAL: THE MAXIMUM SCORE IS {max_score} POINTS, NOT 100! ***
@@ -201,8 +219,8 @@ STEP 3 - RUBRIC EVALUATION (if rubric provided):
 - Sum up the points earned for each criterion for the final score
 - The score MUST be based on rubric criteria, NOT general content quality
 
-Consider BOTH text content AND any images/figures when evaluating.
-Images may contain critical information like diagrams, flowcharts, handwritten work, charts, or code.
+Consider BOTH text content AND OCR'd image transcriptions when evaluating.
+Image OCR may contain critical information like diagrams, flowcharts, handwritten work, charts, or code.
 
 Provide:
 1. **Score**: An integer from 0 to {max_score}. NOT out of 100! Score is out of {max_score}.
@@ -213,56 +231,59 @@ Provide:
 
 *** REMINDER: Maximum possible score is {max_score}. Your score value must be between 0 and {max_score}! ***
 
-Respond in the following JSON format:
+Respond with a single valid JSON object in this exact shape (no markdown, no commentary):
 {{
     "score": <integer from 0 to {max_score}>,
-    "strengths": ["strength1", "strength2", ...],
-    "weaknesses": ["weakness1", "weakness2", ...],
+    "strengths": ["strength1", "strength2"],
+    "weaknesses": ["weakness1", "weakness2"],
     "feedback": "detailed feedback text",
     "summary": "brief summary"
 }}
 """
-    content_parts.append(types.Part.from_text(text=closing_prompt))
+    prompt_parts.append(closing_prompt)
+    full_prompt = "".join(prompt_parts)
 
     publish({
         "step": "gemini_processing",
         "percent": 90,
-        "info": f"Sending {len(content_parts)} content parts (text + images) to Gemini"
+        "info": f"Sending grading prompt to Groq ({TEXT_MODEL})"
     })
 
-    # Generate evaluation using Gemini with multimodal content
-    publish({"info": "Calling Gemini API with multimodal content", "step": "api_call"})
-    response = gemini_client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=content_parts
+    publish({"info": "Calling Groq API", "step": "api_call"})
+    response = groq_client.chat.completions.create(
+        model=TEXT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a STRICT academic grader. Always return a single valid JSON object matching "
+                    "the requested schema. No markdown, no commentary, no trailing text."
+                ),
+            },
+            {"role": "user", "content": full_prompt},
+        ],
+        temperature=0.2,
+        response_format={"type": "json_object"},
     )
 
-    publish({"info": "Received Gemini response", "step": "api_response"})
+    publish({"info": "Received Groq response", "step": "api_response"})
 
-    # Check if response is valid
-    if not response or not hasattr(response, 'text'):
-        publish({"error": "Gemini API returned empty response"})
-        sys.exit(1)
-
-    response_text = response.text
+    response_text = response.choices[0].message.content if response and response.choices else ""
 
     if not response_text:
-        publish({"error": "Gemini API returned empty text"})
+        publish({"error": "Groq API returned empty text"})
         sys.exit(1)
 
-    # Try to extract JSON from response
     try:
-        # Handle markdown code blocks
-        if response_text and "```json" in response_text:
+        if "```json" in response_text:
             json_str = response_text.split("```json")[1].split("```")[0].strip()
-        elif response_text and "```" in response_text:
+        elif "```" in response_text:
             json_str = response_text.split("```")[1].split("```")[0].strip()
         else:
-            json_str = response_text.strip() if response_text else "{}"
+            json_str = response_text.strip()
 
         evaluation = json.loads(json_str)
 
-        # Ensure score is a number
         if isinstance(evaluation.get("score"), str):
             evaluation["score"] = int(evaluation["score"])
 
@@ -273,7 +294,6 @@ Respond in the following JSON format:
         })
 
     except (json.JSONDecodeError, ValueError) as e:
-        # If JSON parsing fails, try to extract score and return raw response
         publish({
             "step": "gemini_completed",
             "percent": 95,
@@ -289,7 +309,7 @@ Respond in the following JSON format:
 except Exception as e:
     import traceback
     error_details = {
-        "error": f"Gemini evaluation failed: {str(e)}",
+        "error": f"Groq evaluation failed: {str(e)}",
         "step": "gemini_failed",
         "error_type": type(e).__name__,
         "traceback": traceback.format_exc()

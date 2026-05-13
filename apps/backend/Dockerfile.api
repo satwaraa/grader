@@ -42,8 +42,9 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy dist build output
 COPY --from=builder /app/dist ./dist
 
-# Copy prisma folder for DB schema + migration support
+# Copy prisma folder + config for DB schema + migration support
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
 
 
 # Default CMD (overridden in docker-compose)

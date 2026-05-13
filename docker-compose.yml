@@ -4,7 +4,7 @@ services:
     container_name: postgres
     restart: unless-stopped
     ports:
-      - "8601:5432"
+      - "15432:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,7 +18,7 @@ services:
     image: redis:7-alpine
     container_name: assignment-grader-redis
     ports:
-      - "8602:6379"
+      - "16379:6379"
     volumes:
       - redis_data:/data
     restart: always
@@ -52,7 +52,7 @@ services:
       - postgres
     networks:
       - lpu-network
-    command: ["bun", "dist/index.js"]
+    command: ["sh", "-c", "bunx prisma migrate deploy && bun dist/index.js"]
 
   ws:
     build:
@@ -87,7 +87,7 @@ services:
       BUCKET_NAME: ${BUCKET_NAME}
       R2_ENDPOINT: ${R2_ENDPOINT}
       PUBLIC_ENDPOINT: ${PUBLIC_ENDPOINT}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
     depends_on:
       - redis
       - postgres
@@ -97,12 +97,13 @@ services:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
     container_name: assignment-grader-frontend
     restart: unless-stopped
     ports:
       - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8600/api
     depends_on:
       - api
     networks:

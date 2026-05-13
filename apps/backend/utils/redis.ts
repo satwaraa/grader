@@ -26,7 +26,7 @@ if (!isProduction) {
 }
 
 // Use REDIS_URL from environment in production, localhost in development
-const localRedisUrl = "redis://localhost:6379";
+const localRedisUrl = "redis://localhost:16379";
 const redisUrl = isProduction ? (env.REDIS_URL || localRedisUrl) : localRedisUrl;
 
 console.log(`📡 Redis connecting to: ${redisUrl} (${isProduction ? "production" : "development"})`);

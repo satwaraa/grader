@@ -135,7 +135,7 @@ function runGeminiGrader(
             {
                 env: {
                     ...process.env,
-                    GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
+                    GROQ_API_KEY: process.env.GROQ_API_KEY || "",
                     DOTENV_PATH: envPath,
                 },
                 cwd: path.join(__dirname, "python"),

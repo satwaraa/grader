@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile apps/backend/workers/python/geminiGrader.py)",
+      "Bash(python3 -c \"import groq; print\\('groq', groq.__version__\\)\")"
+    ]
+  }
+}
